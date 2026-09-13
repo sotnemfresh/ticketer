@@ -6,11 +6,6 @@ interface TicketListProps {
 }
 
 export function TicketList({ tickets }: TicketListProps) {
-    // const [tickets, setTickets] = useState([
-    //     { id: 1, subject: 'Ticket 1', description: 'Description for Ticket 1', status: "new", priority: "high" },
-    //     { id: 2, subject: 'Ticket 2', description: 'Description for Ticket 2', status: "in-progress", priority: "medium" },
-    //     { id: 3, subject: 'Ticket 3', description: 'Description for Ticket 3', status: "resolved", priority: "low" },
-    // ]);
 
     console.log("Rendering with items:", tickets)
 

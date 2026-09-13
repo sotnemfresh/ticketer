@@ -1,56 +1,51 @@
+// TicketDetailPage.tsx
 import { useNavigate, useParams } from 'react-router-dom'
+import TicketMessageForm, { type NewMessageData } from '../../components/TicketMessageForm'
+import { TicketMessageList } from '../../components/TicketMessageList'
+import TicketSidebar from '../../components/TicketSidebar'
+import { useCreateMessage, useTicketMessages } from '../../services/ticketMessageService'
 import './TicketDetailPage.css'
 
-const TicketDetailPage = () => {
+export default function TicketDetailPage() {
     const navigate = useNavigate()
     const { ticketId } = useParams()
+    const numericTicketId = Number(ticketId)
 
-    const ticket = {
-        subject: 'Printer broken',
-        status: 'Open',
-        priority: 'High',
-        description: "The printer won't print.",
-        customer: 'John Smith',
+    const { data: messages = [], isLoading } = useTicketMessages(String(numericTicketId))
+    const createMessage = useCreateMessage()
+
+    async function handleSendMessage(data: NewMessageData) {
+        await createMessage.mutateAsync({
+            ticketId: data.ticketId,
+            body: data.body,
+        })
     }
-    
+
     return (
         <main className="ticket-detail-page">
-            <div>
-                <button type="button" onClick={() => navigate('/tickets')}>
-                    ← Back to tickets
-                </button>
-                <article className="ticket-detail">
-                    <p className="ticket-id">Ticket #{ticketId}</p>
+            <button type="button" onClick={() => navigate('/tickets')}>
+                ← Back to tickets
+            </button>
+            <section className="ticket-detail-frame">
+                <h1 className="ticket-detail-title">Ticket Details</h1>
 
-                    <h1>{ticket.subject}</h1>
+                <section className="ticket-detail-layout">
+                    <TicketSidebar />
 
-                    <div className="ticket-meta">
-                        <p>
-                            <strong>Status:</strong> {ticket.status}
-                        </p>
-                        <p>
-                            <strong>Priority:</strong> {ticket.priority}
-                        </p>
-                    </div>
+                    <section className="ticket-detail-content">
+                        <section className="ticket-message-list-box">
+                            <TicketMessageList ticketMessages={messages} />
+                        </section>
 
-                    <section>
-                        <h2>Description</h2>
-                        <p className="description">{ticket.description}</p>
+                        <TicketMessageForm
+                            ticketId={numericTicketId}
+                            onSubmit={handleSendMessage}
+                        />
                     </section>
+                </section>
 
-                    <section>
-                        <h2>Customer</h2>
-                        <p>{ticket.customer}</p>
-                    </section>
-
-                    <div className="ticket-actions">
-                        <button type="button">Reply</button>
-                        <button type="button">Change status</button>
-                    </div>
-                </article>
-            </div>
+                {isLoading && <p className="ticket-detail-loading">Loading messages...</p>}
+            </section>
         </main>
     )
 }
-
-export default TicketDetailPage

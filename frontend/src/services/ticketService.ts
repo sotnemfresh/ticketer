@@ -5,7 +5,7 @@ import {
 } from '@tanstack/react-query'
 import type { Ticket } from '../types/ticket'
 
-const API_URL = 'http://localhost:3000/api/tickets'
+const API_URL = import.meta.env.VITE_API_URL
 
 export interface CreateTicketData {
   subject: string
