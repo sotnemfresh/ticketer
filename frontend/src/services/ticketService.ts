@@ -25,19 +25,26 @@ async function getTickets(): Promise<Ticket[]> {
 }
 
 async function postTicket(data: CreateTicketData): Promise<Ticket> {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  })
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
 
-  if (!response.ok) {
-    throw new Error('Failed to create ticket')
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({ message: 'Something went wrong.' }))
+      throw new Error(body.message ?? 'Something went wrong while creating the ticket')
+    }
+
+    return response.json()
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+
+    throw new Error('Something went wrong while creating the ticket')
   }
-
-  return response.json()
 }
 
 export function useTickets() {

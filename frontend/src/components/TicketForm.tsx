@@ -28,9 +28,9 @@ export default function TicketForm({ onSubmit, onCancel }: TicketFormProps) {
             await onSubmit(data)
             onCancel()
         } catch (error) {
-            setError("root", {
-                message: "Failed to submit the form"
-            });
+            setError('root', {
+                message: error instanceof Error ? error.message : 'Something went wrong.',
+            })
         }
     }
 
