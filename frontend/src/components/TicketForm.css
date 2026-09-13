@@ -1,0 +1,76 @@
+/* TicketForm.css */
+.ticket-form {
+  display: grid;
+  gap: 12px;
+  max-width: 520px;
+  margin: 0 0 28px;
+  padding: 20px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 8%);
+}
+
+.ticket-form h2 {
+  margin: 0 0 8px;
+  color: #111827;
+}
+
+.ticket-form input,
+.ticket-form select {
+  padding: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font: inherit;
+}
+
+.ticket-form input:focus,
+.ticket-form select:focus {
+  outline: 2px solid #93c5fd;
+  border-color: #2563eb;
+}
+
+.ticket-form button {
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.ticket-form button[type='submit'] {
+  color: white;
+  background: #2563eb;
+}
+
+.ticket-form button[type='button'] {
+  color: #374151;
+  background: #e5e7eb;
+}
+
+.error {
+  color: #dc2626;
+  font-size: 0.9rem;
+}
+
+.ticket-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 520px) {
+  .ticket-meta {
+    grid-template-columns: 1fr;
+  }
+}
