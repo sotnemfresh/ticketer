@@ -28,4 +28,5 @@ export type CreateTicketBody = {
   description?: string
   status?: keyof typeof statusMap
   priority?: keyof typeof priorityMap
+  requesterId?: number
 }

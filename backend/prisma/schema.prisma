@@ -33,19 +33,45 @@ model Ticket {
   description String
   status      TicketStatus   @default(NEW)
   priority    TicketPriority @default(MEDIUM)
-  requesterId Int?
+
+  requesterId Int
   assigneeId  Int?
+
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
-  
-  messages    TicketMessage[]
+
+  messages TicketMessage[]
+
+  requester User @relation("TicketRequester", fields: [requesterId], references: [id])
+  assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
 }
 
 model TicketMessage {
   id        Int      @id @default(autoincrement())
   ticketId  Int
+  authorId  Int
   body      String
   createdAt DateTime @default(now())
 
   ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id])
+}
+
+enum UserRole {
+  ADMIN
+  AGENT
+  VIEWER
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String
+  email    String   @unique
+  role     UserRole @default(AGENT)
+  jobTitle String?
+
+  requestedTickets Ticket[] @relation("TicketRequester")
+  assignedTickets  Ticket[] @relation("TicketAssignee")
+
+  messages         TicketMessage[]
 }
