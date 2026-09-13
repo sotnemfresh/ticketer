@@ -80,7 +80,7 @@ export async function getTicketMessages(rawTicketId: string | string[]) {
   })
 }
 
-export async function createTicketMessage(rawTicketId: string | string[], body: { body?: string }) {
+export async function createTicketMessage(rawTicketId: string | string[], body: { body?: string }, authorId: number) {
   const result = await parseTicketId(rawTicketId)
 
   if ('error' in result) {
@@ -104,7 +104,7 @@ export async function createTicketMessage(rawTicketId: string | string[], body: 
       data: {
         ticketId: result.ticketId,
         body: messageBody,
-        authorId: 1,
+        authorId: authorId,
       },
     })
   } catch {

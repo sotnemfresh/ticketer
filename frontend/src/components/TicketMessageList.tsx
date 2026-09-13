@@ -4,7 +4,6 @@ interface TicketMessageListProps {
     ticketMessages: TicketMessage[]
 }
 
-
 export function TicketMessageList({ ticketMessages }: TicketMessageListProps) {
 
     console.log("Rendering TicketMessageList with items:", ticketMessages)
@@ -14,7 +13,7 @@ export function TicketMessageList({ ticketMessages }: TicketMessageListProps) {
                 {ticketMessages.map((message) => (
                     <li key={message.id}>
                         <p>
-                            <strong>Message #{message.id}</strong>
+                            <strong>{message.authorName ?? 'Unknown author'}</strong>
                             <span> — {new Date(message.createdAt).toLocaleString()}</span>
                         </p>
                         <p>{message.body}</p>

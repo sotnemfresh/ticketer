@@ -46,7 +46,15 @@ ticketRouter.get('/:ticketId/messages', async (req, res) => {
 /* Create a new message for a ticket */
 ticketRouter.post('/:ticketId/messages', async (req: Request, res: Response) => {
   try {
-    const message = await createTicketMessage(req.params.ticketId, req.body)
+    const ticketId = req.params.ticketId;
+    const { body, authorId } = req.body;
+
+    const message = await createTicketMessage(
+      ticketId,
+      { body },
+      authorId
+    )
+
     return res.status(201).json(message)
   } catch (error) {
     const err = error as { status?: number; message?: string }
