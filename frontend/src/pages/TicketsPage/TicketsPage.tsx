@@ -6,7 +6,7 @@ import { useCreateTicket, useTickets } from '../../services/ticketService'
 
 export default function TicketsPage() {
     const [showForm, setShowForm] = useState(false)
-    
+    /* Fetch the list of tickets */
     const { data: tickets = [], isLoading } = useTickets()
     const createTicket = useCreateTicket()
 

@@ -30,3 +30,10 @@ export type CreateTicketBody = {
   priority?: keyof typeof priorityMap
   requesterId?: number
 }
+
+export type UpdateTicketBody = {
+  status?: keyof typeof statusMap
+  priority?: keyof typeof priorityMap
+  assigneeId?: number | null
+  requesterId?: number
+}

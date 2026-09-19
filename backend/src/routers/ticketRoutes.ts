@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
-import { createTicket, createTicketMessage, getAllTickets, getTicketMessages } from '../services/ticketService.js'
-import type { CreateTicketBody } from '../types/ticket.js'
+import { createTicket, createTicketMessage, getAllTickets, getTicketById, getTicketMessages, updateTicket } from '../services/ticketService.js'
+import type { CreateTicketBody, UpdateTicketBody } from '../types/ticket.js'
 
 export const ticketRouter = Router()
 
@@ -15,6 +15,19 @@ ticketRouter.get('/', async (req: Request, res: Response) => {
   }
 })
 
+/* Get a ticket by id */
+ticketRouter.get('/:ticketId', async (req: Request, res: Response) => {
+  try {
+    const ticket = await getTicketById(req.params.ticketId)
+    return res.status(200).json(ticket)
+  } catch (error) {
+    const err = error as { status?: number; message?: string }
+    return res.status(err.status ?? 500).json({
+      message: err.message ?? 'Something went wrong while fetching the ticket',
+    })
+  }
+})
+
 /* Create a new ticket */
 ticketRouter.post('/', async (req: Request, res: Response) => {
   try {
@@ -25,6 +38,21 @@ ticketRouter.post('/', async (req: Request, res: Response) => {
     const err = error as { status?: number; message?: string }
     return res.status(err.status ?? 500).json({
       message: err.message ?? 'Something went wrong while creating the ticket',
+    })
+  }
+})
+
+/* Ticket change handling */
+/* Update a ticket by id */
+ticketRouter.patch('/:ticketId', async (req: Request, res: Response) => {
+  try {
+    const body = req.body as UpdateTicketBody
+    const updated = await updateTicket(req.params.ticketId, body)
+    return res.status(200).json(updated)
+  } catch (error) {
+    const err = error as { status?: number; message?: string }
+    return res.status(err.status ?? 500).json({
+      message: err.message ?? 'Something went wrong while updating the ticket',
     })
   }
 })

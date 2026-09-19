@@ -16,6 +16,10 @@ export interface CreateMessageData {
 async function getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
   const response = await fetch(`${API_URL}/${ticketId}/messages`)
 
+  if (response.status === 404) {
+    return []
+  }
+  
   if (!response.ok) {
     throw new Error('Failed to fetch ticket messages')
   }

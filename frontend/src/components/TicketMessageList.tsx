@@ -5,8 +5,14 @@ interface TicketMessageListProps {
 }
 
 export function TicketMessageList({ ticketMessages }: TicketMessageListProps) {
+    if (ticketMessages.length === 0) {
+        return (
+            <div className="message-card">
+                <p>No messages have been made in this ticket.</p>
+            </div>
+        )
+    }
 
-    console.log("Rendering TicketMessageList with items:", ticketMessages)
     return (
         <div className="message-card">
             <ul>
