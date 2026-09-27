@@ -51,11 +51,11 @@ const TicketSidebar = ({ ticket, users = [], onSave }: TicketSidebarProps) => {
             value={draftStatus ?? ''}
             onChange={(e) => setDraftStatus(e.target.value as TicketStatus)}
           >
-            <option value="NEW">NEW</option>
-            <option value="OPEN">OPEN</option>
-            <option value="PENDING">PENDING</option>
-            <option value="CLOSED">CLOSED</option>
-            <option value="SOLVED">SOLVED</option>
+            <option value="NEW">New</option>
+            <option value="OPEN">Open</option>
+            <option value="PENDING">Pending</option>
+            <option value="CLOSED">Closed</option>
+            <option value="SOLVED">Solved</option>
           </select>
         </div>
       </div>
@@ -68,10 +68,10 @@ const TicketSidebar = ({ ticket, users = [], onSave }: TicketSidebarProps) => {
             value={draftPriority ?? ''}
             onChange={(e) => setDraftPriority(e.target.value as TicketPriority)}
           >
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-            <option value="URGENT">URGENT</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
           </select>
         </div>
       </div>

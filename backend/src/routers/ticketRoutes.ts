@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express'
 import { createTicket, createTicketMessage, getAllTickets, getTicketById, getTicketMessages, updateTicket } from '../services/ticketService.js'
 import type { CreateTicketBody, UpdateTicketBody } from '../types/ticket.js'
+import { requireAuth } from '../middleware/requireAuth.js'
 
 export const ticketRouter = Router()
+ticketRouter.use(requireAuth)
 
 /* --Ticket handling-- */
 /* Get all tickets */
@@ -13,7 +15,7 @@ ticketRouter.get('/', async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(500).json({ message: 'Something went wrong while fetching tickets' })
   }
-})
+}) 
 
 /* Get a ticket by id */
 ticketRouter.get('/:ticketId', async (req: Request, res: Response) => {
@@ -31,11 +33,15 @@ ticketRouter.get('/:ticketId', async (req: Request, res: Response) => {
 /* Create a new ticket */
 ticketRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const body = req.body as CreateTicketBody
-    const created = await createTicket(body)
+    const created = await createTicket(
+      req.body as CreateTicketBody,
+      req.session.userId!,
+    )
+
     return res.status(201).json(created)
   } catch (error) {
     const err = error as { status?: number; message?: string }
+
     return res.status(err.status ?? 500).json({
       message: err.message ?? 'Something went wrong while creating the ticket',
     })
@@ -74,18 +80,16 @@ ticketRouter.get('/:ticketId/messages', async (req, res) => {
 /* Create a new message for a ticket */
 ticketRouter.post('/:ticketId/messages', async (req: Request, res: Response) => {
   try {
-    const ticketId = req.params.ticketId;
-    const { body, authorId } = req.body;
-
     const message = await createTicketMessage(
-      ticketId,
-      { body },
-      authorId
+      req.params.ticketId,
+      { body: req.body.body },
+      req.session.userId!,
     )
 
     return res.status(201).json(message)
   } catch (error) {
     const err = error as { status?: number; message?: string }
+
     return res.status(err.status ?? 500).json({
       message: err.message ?? 'Something went wrong while creating the ticket message',
     })

@@ -18,6 +18,13 @@ export async function parseUserId(
 
     const user = await prisma.user.findUnique({
       where: { id: rawUserId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        jobTitle: true,
+      },
     })
 
     if (!user) {
@@ -35,6 +42,13 @@ export async function parseUserId(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      jobTitle: true,
+    },
   })
 
   if (!user) {

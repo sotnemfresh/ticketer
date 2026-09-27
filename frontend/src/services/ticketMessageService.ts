@@ -4,9 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import type { TicketMessage } from '../types/ticketMessage'
-
-const API_URL = import.meta.env.VITE_API_URL
-const USERS_API_URL = `${API_URL?.replace(/\/tickets\/?$/, '')}/users`
+import { apiClient } from './apiClient'
 
 export interface CreateMessageData {
   ticketId: number
@@ -14,67 +12,48 @@ export interface CreateMessageData {
 }
 
 async function getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
-  const response = await fetch(`${API_URL}/${ticketId}/messages`)
+  try {
+    const rawMessages = await apiClient(`/tickets/${ticketId}/messages`)
 
-  if (response.status === 404) {
-    return []
-  }
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch ticket messages')
-  }
+    return Promise.all(
+      rawMessages.map(async (message: TicketMessage) => {
+        if (!message.authorId) {
+          return message
+        }
 
-  const rawMessages = await response.json()
+        try {
+          const user = await apiClient(`/users/${message.authorId}`)
 
-  return Promise.all(
-    rawMessages.map(async (message: TicketMessage) => {
-      if (!message.authorId) {
-        return message
-      }
-
-      try {
-        const userResponse = await fetch(`${USERS_API_URL}/${message.authorId}`)
-
-        if (!userResponse.ok) {
+          return {
+            ...message,
+            authorName: user.name,
+          }
+        } catch {
           return {
             ...message,
             authorName: 'Unknown author',
           }
         }
+      }),
+    )
+  } catch (error) {
+    if (error instanceof Error && 'status' in error && error.status === 404) {
+      return []
+    }
 
-        const user = await userResponse.json()
-
-        return {
-          ...message,
-          authorName: user.name,
-        }
-      } catch {
-        return {
-          ...message,
-          authorName: 'Unknown author',
-        }
-      }
-    }),
-  )
+    throw new Error('Failed to fetch ticket messages')
+  }
 }
 
 async function postMessage(data: CreateMessageData): Promise<TicketMessage> {
   try {
-    const response = await fetch(`${API_URL}/${data.ticketId}/messages`, {
+    return await apiClient(`/tickets/${data.ticketId}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: data.body }),
     })
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ message: 'Something went wrong.' }))
-      throw new Error(body.message ?? 'Something went wrong while creating the ticket message')
-    }
-
-    return response.json()
   } catch (error) {
     if (error instanceof Error) {
-      throw error
+      throw new Error(error.message || 'Something went wrong while creating the ticket message')
     }
 
     throw new Error('Something went wrong while creating the ticket message')

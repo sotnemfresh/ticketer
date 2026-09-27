@@ -35,8 +35,8 @@ export async function getTicketById(rawTicketId: string | string[]) {
   })
 }
 
-export async function createTicket(body: CreateTicketBody) {
-  const { subject, description, status, priority, requesterId } = body
+export async function createTicket(body: CreateTicketBody, loggedInUserId: number,) {
+  const { subject, description, status, priority } = body
 
   if (!subject || !description || !status || !priority) {
     throw {
@@ -55,8 +55,7 @@ export async function createTicket(body: CreateTicketBody) {
     } satisfies ServiceError
   }
 
-  const requesterIdToUse = requesterId ?? 1
-  const userResult = await parseUserId(requesterIdToUse)
+  const userResult = await parseUserId(loggedInUserId)
 
   if ('error' in userResult) {
     throw {
@@ -72,7 +71,7 @@ export async function createTicket(body: CreateTicketBody) {
       status: mappedStatus,
       priority: mappedPriority,
       requester: {
-        connect: { id: requesterIdToUse },
+        connect: { id: loggedInUserId },
       },
     }
 

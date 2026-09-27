@@ -9,18 +9,18 @@ export interface Ticket {
 }
 
 export const statusMap = {
-  open: 'OPEN',
-  new: 'NEW',
-  pending: 'PENDING',
-  closed: 'CLOSED',
-  solved: 'SOLVED',
+  OPEN: 'OPEN',
+  NEW: 'NEW',
+  PENDING: 'PENDING',
+  CLOSED: 'CLOSED',
+  SOLVED: 'SOLVED',
 } as const
 
 export const priorityMap = {
-  low: 'LOW',
-  medium: 'MEDIUM',
-  high: 'HIGH',
-  urgent: 'URGENT',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
 } as const
 
 export type CreateTicketBody = {

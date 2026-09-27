@@ -15,6 +15,8 @@ export const roleMap = {
 export type CreateUserBody = {
   name?: string
   email?: string
+  password?: string
   role?: keyof typeof roleMap
   jobTitle?: string | null
 }
+

@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js'
 import { parseUserId } from '../helpers/userId.js'
 import { roleMap, type CreateUserBody } from '../types/user.js'
+import { hashPassword } from '../lib/password.js'
 
 export type ServiceError = {
   status: number
@@ -8,16 +9,24 @@ export type ServiceError = {
 }
 
 export async function getAllUsers() {
-  return prisma.user.findMany()
+  return prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      jobTitle: true,
+    },
+  })
 }
 
 export async function createUser(body: CreateUserBody) {
-  const { name, email, role, jobTitle } = body
+  const { name, email, password, role, jobTitle } = body
 
-  if (!name || !email || !role) {
+  if (!name || !email || !password || !role) {
     throw {
       status: 400,
-      message: 'name, email, and role are required',
+      message: 'name, email, password, and role are required',
     } satisfies ServiceError
   }
 
@@ -30,13 +39,23 @@ export async function createUser(body: CreateUserBody) {
     } satisfies ServiceError
   }
 
+  const passwordHash = await hashPassword(password)
+
   try {
     return await prisma.user.create({
       data: {
         name,
         email,
+        passwordHash,
         role: mappedRole,
         jobTitle: jobTitle ?? null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        jobTitle: true,
       },
     })
   } catch {
@@ -47,7 +66,7 @@ export async function createUser(body: CreateUserBody) {
   }
 }
 
-export async function getUserById(id: string | string[]) {
+export async function getUserById(id: string | string[] | number) {
   const result = await parseUserId(id)
 
   if ('error' in result) {

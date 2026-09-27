@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { createUser, getAllUsers, getUserById } from '../services/userService.js'
 import type { CreateUserBody } from '../types/user.js'
 
+
 export const userRouter = Router()
 
 /* --User handling-- */

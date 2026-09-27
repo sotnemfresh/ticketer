@@ -4,9 +4,9 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import type { Ticket } from '../types/ticket'
+import { apiClient } from './apiClient'
 
-const API_URL = import.meta.env.VITE_API_URL
-const TICKET_URL = `${API_URL}/tickets`
+const TICKET_URL = '/tickets'
 
 export interface CreateTicketData {
   subject: string
@@ -24,42 +24,30 @@ export interface UpdateTicketData {
 }
 
 async function getTickets(): Promise<Ticket[]> {
-  const response = await fetch(TICKET_URL)
-
-  if (!response.ok) {
+  try {
+    return await apiClient(TICKET_URL)
+  } catch {
     throw new Error('Failed to fetch tickets')
   }
-
-  return response.json()
 }
 
 async function getTicketById(ticketId: string): Promise<Ticket> {
-  const response = await fetch(`${TICKET_URL}/${ticketId}`)
-
-  if (!response.ok) {
+  try {
+    return await apiClient(`${TICKET_URL}/${ticketId}`)
+  } catch {
     throw new Error('Failed to fetch ticket')
   }
-
-  return response.json()
 }
 
 async function postTicket(data: CreateTicketData): Promise<Ticket> {
   try {
-    const response = await fetch(TICKET_URL, {
+    return await apiClient(TICKET_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ message: 'Something went wrong.' }))
-      throw new Error(body.message ?? 'Something went wrong while creating the ticket')
-    }
-
-    return response.json()
   } catch (error) {
     if (error instanceof Error) {
-      throw error
+      throw new Error(error.message || 'Something went wrong while creating the ticket')
     }
 
     throw new Error('Something went wrong while creating the ticket')
@@ -68,21 +56,13 @@ async function postTicket(data: CreateTicketData): Promise<Ticket> {
 
 async function patchTicket({ ticketId, ...data }: UpdateTicketData): Promise<Ticket> {
   try {
-    const response = await fetch(`${TICKET_URL}/${ticketId}`, {
+    return await apiClient(`${TICKET_URL}/${ticketId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     })
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => ({ message: 'Something went wrong.' }))
-      throw new Error(body.message ?? 'Something went wrong while updating the ticket')
-    }
-
-    return response.json()
   } catch (error) {
     if (error instanceof Error) {
-      throw error
+      throw new Error(error.message || 'Something went wrong while updating the ticket')
     }
 
     throw new Error('Something went wrong while updating the ticket')

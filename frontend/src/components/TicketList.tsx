@@ -7,15 +7,13 @@ interface TicketListProps {
 
 export function TicketList({ tickets }: TicketListProps) {
 
-    console.log("Rendering with items:", tickets)
-
     return (
         <div>
             <ul>
                 {tickets.map((ticket) => {
                     return (
                         <li key={ticket.id}>
-                            <Link className="ticket-link" to={`/ticket/${ticket.id}`}>
+                            <Link className="ticket-link" to={`/tickets/${ticket.id}`}>
                             <h2>{ticket.subject}</h2>
                             <p>{ticket.description}</p>
                             <span>Status: {ticket.status}</span>

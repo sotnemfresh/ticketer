@@ -7,6 +7,7 @@ as startup
 migrations:
 docker compose up -d
 
+npx prisma migrate reset
 npx prisma migrate dev --name initial_migration
 npx prisma generate
 npx prisma studio --config ./prisma.config.ts
