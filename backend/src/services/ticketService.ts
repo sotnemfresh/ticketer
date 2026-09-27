@@ -9,7 +9,12 @@ export type ServiceError = {
 }
 
 export async function getAllTickets() {
-  return prisma.ticket.findMany()
+  return prisma.ticket.findMany({
+    include: {
+      requester: { select: { id: true, name: true, email: true } },
+      assignee: { select: { id: true, name: true, email: true } },
+    },
+  })
 }
 
 export async function getTicketById(rawTicketId: string | string[]) {
@@ -89,7 +94,7 @@ export async function createTicket(body: CreateTicketBody, loggedInUserId: numbe
 export async function updateTicket(rawTicketId: string | string[], body: UpdateTicketBody) {
   /* Validate and parse the ticket ID */
   const ticketResult = await parseTicketId(rawTicketId)
-/* Check if ticket exists */
+  /* Check if ticket exists */
   if ('error' in ticketResult) {
     throw {
       status: ticketResult.error === 'Ticket not found' ? 404 : 400,
@@ -99,7 +104,7 @@ export async function updateTicket(rawTicketId: string | string[], body: UpdateT
 
   const { status, priority, assigneeId, requesterId } = body
   const data: Record<string, unknown> = {}
-/* check if status is provided and valid */
+  /* check if status is provided and valid */
   if (status !== undefined) {
     const mappedStatus = statusMap[status]
     if (!mappedStatus) {
@@ -115,7 +120,7 @@ export async function updateTicket(rawTicketId: string | string[], body: UpdateT
     }
     data.priority = mappedPriority
   }
-/* Determine if requesterId is provided and valid */
+  /* Determine if requesterId is provided and valid */
   if (requesterId !== undefined) {
     const requesterResult = await parseUserId(requesterId)
     if ('error' in requesterResult) {
@@ -195,13 +200,21 @@ export async function createTicketMessage(rawTicketId: string | string[], body: 
   }
 
   try {
-    return await prisma.ticketMessage.create({
-      data: {
-        ticketId: result.ticketId,
-        body: messageBody,
-        authorId: authorId,
-      },
-    })
+    const [message] = await prisma.$transaction([
+      prisma.ticketMessage.create({
+        data: {
+          ticketId: result.ticketId,
+          body: messageBody,
+          authorId: authorId,
+        },
+      }),
+      prisma.ticket.update({
+        where: { id: result.ticketId },
+        data: {updatedAt: new Date()}, // empty update still bumps @updatedAt
+      }),
+    ])
+
+    return message
   } catch {
     throw {
       status: 500,

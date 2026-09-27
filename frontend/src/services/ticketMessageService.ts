@@ -72,9 +72,15 @@ export function useCreateMessage() {
 
   return useMutation({
     mutationFn: postMessage,
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: ['ticketMessages'],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['ticket', String(variables.ticketId)],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['tickets'],
       })
     },
   })
