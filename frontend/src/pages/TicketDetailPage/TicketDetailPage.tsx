@@ -1,14 +1,15 @@
 // TicketDetailPage.tsx
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import TicketMessageForm, { type NewMessageData } from '../../components/TicketMessageForm'
-import { TicketMessageList } from '../../components/TicketMessageList'
-import TicketSidebar, { type TicketSidebarChanges } from '../../components/TicketSidebar'
+import TicketMessageForm, { type NewMessageData } from '../../components/tickets/ticketDetailPage/TicketMessageForm'
+import { TicketMessageList } from '../../components/tickets/ticketDetailPage/TicketMessageList'
+import TicketSidebar, { type TicketSidebarChanges } from '../../components/tickets/ticketDetailPage/TicketSidebar'
 import { useCreateMessage, useTicketMessages } from '../../services/ticketMessageService'
 import './TicketDetailPage.css'
 import { useTicket, useUpdateTicket } from '../../services/ticketService'
 import { useUsers } from '../../services/userService'
 import { diffChanges } from '../../helpers/diffChanges'
+import { Button } from '@/components/ui/button'
 
 
 export default function TicketDetailPage() {
@@ -70,9 +71,9 @@ export default function TicketDetailPage() {
 
     return (
         <main className="ticket-detail-page">
-            <button type="button" onClick={() => navigate('/tickets')}>
+            <Button type="button" onClick={() => navigate('/tickets')}>
                 ← Back to tickets
-            </button>
+            </Button>
             <section className="ticket-detail-frame">
                 <h1 className="ticket-detail-title">{ticket?.subject ?? 'Ticket Details'}</h1>
 

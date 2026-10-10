@@ -1,5 +1,7 @@
 import { useForm } from 'react-hook-form'
 import type { SubmitHandler } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 export type NewMessageData = {
     ticketId: number
@@ -45,7 +47,7 @@ export default function TicketMessageForm({ ticketId, onSubmit }: TicketMessageF
 
     return (
         <form className="ticket-message-form" onSubmit={handleSubmit(submitMessage)}>
-            <textarea
+            <Textarea
                 className="ticket-message-textarea"
                 placeholder="Write a message..."
                 rows={4}
@@ -58,9 +60,9 @@ export default function TicketMessageForm({ ticketId, onSubmit }: TicketMessageF
             {errors.body && <span className="error">{errors.body.message}</span>}
             {errors.root && <span className="error">{errors.root.message}</span>}
 
-            <button className="ticket-message-send" type="submit" disabled={isSubmitting}>
+            <Button className="ticket-message-send" type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Sending...' : 'Send'}
-            </button>
+            </Button>
         </form>
     )
 }

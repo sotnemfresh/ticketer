@@ -1,4 +1,4 @@
-import type { TicketMessage } from '../types/ticketMessage'
+import type { TicketMessage } from '../../../types/ticketMessage'
 
 interface TicketMessageListProps {
     ticketMessages: TicketMessage[]

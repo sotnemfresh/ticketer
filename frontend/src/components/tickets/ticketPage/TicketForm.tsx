@@ -1,6 +1,8 @@
 import './TicketForm.css'
 import { useForm } from 'react-hook-form'
 import type { SubmitHandler } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export type NewTicketData = {
     subject: string
@@ -41,7 +43,7 @@ export default function TicketForm({ onSubmit, onCancel }: TicketFormProps) {
         >
             <h2>Create New Ticket</h2>
 
-            <input
+            <Input
                 type="text"
                 placeholder="Subject"
                 {...register('subject', {
@@ -53,7 +55,7 @@ export default function TicketForm({ onSubmit, onCancel }: TicketFormProps) {
                 <span className="error">{errors.subject.message}</span>
             )}
 
-            <input
+            <Input
                 type="text"
                 placeholder="Description"
                 {...register('description', {
@@ -101,13 +103,13 @@ export default function TicketForm({ onSubmit, onCancel }: TicketFormProps) {
                 </div>
             </div>
 
-            <button disabled={isSubmitting} type="submit">
+            <Button disabled={isSubmitting} type="submit">
                 {isSubmitting ? 'Creating...' : 'Create Ticket'}
-            </button>
+            </Button>
 
-            <button type="button" onClick={onCancel}>
+            <Button type="button" onClick={onCancel}>
                 Cancel
-            </button>
+            </Button>
 
             {errors.root && (
                 <span className="error">{errors.root.message}</span>

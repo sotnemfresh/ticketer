@@ -1,9 +1,10 @@
 import './TicketsPage.css'
 import { useState } from 'react'
-import TicketForm, { type NewTicketData } from '../../components/TicketForm'
-import { TicketList } from '../../components/TicketList'
+import TicketForm, { type NewTicketData } from '../../components/tickets/ticketPage/TicketForm'
+import { TicketList } from '../../components/tickets/ticketPage/TicketList'
 import { useCreateTicket, useTickets } from '../../services/ticketService'
-import TicketSearch from "../../components/TicketSearch";
+import TicketSearch from "../../components/tickets/ticketPage/TicketSearch";
+import { Button } from '@/components/ui/button'
 
 export default function TicketsPage() {
     const [search, setSearch] = useState("");
@@ -34,9 +35,9 @@ export default function TicketsPage() {
                 <h1>Tickets Page</h1>
 
                 {/* Buttons to show new ticket form */}
-                <button type="button" onClick={() => setShowForm(true)}>
+                <Button type="button" onClick={() => setShowForm(true)}>
                     New Ticket
-                </button>
+                </Button>
                 {showForm && (
                     <TicketForm onSubmit={addTicket} onCancel={() => setShowForm(false)} />
                 )}

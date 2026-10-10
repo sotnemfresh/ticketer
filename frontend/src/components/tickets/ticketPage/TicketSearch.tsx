@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input'
+
 type TicketSearchProps = {
   value: string;
   onChange: (value: string) => void;
@@ -8,7 +10,7 @@ export default function TicketSearch({
   onChange,
 }: TicketSearchProps) {
   return (
-    <input
+    <Input
       type="text"
       placeholder="Search tickets..."
       value={value}

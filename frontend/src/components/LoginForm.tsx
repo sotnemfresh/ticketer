@@ -1,5 +1,7 @@
 import { useForm } from 'react-hook-form'
 import type { SubmitHandler } from 'react-hook-form'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export type LoginFormInputs = {
   email: string
@@ -31,7 +33,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
     <form onSubmit={handleSubmit(onFormSubmit)}>
       <div>
         <label htmlFor="email">Email</label>
-        <input
+        <Input
           id="email"
           type="email"
           {...register('email', { required: 'Email is required' })}
@@ -41,7 +43,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
 
       <div>
         <label htmlFor="password">Password</label>
-        <input
+        <Input
           id="password"
           type="password"
           {...register('password', { required: 'Password is required' })}
@@ -49,7 +51,7 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         {errors.password && <span>{errors.password.message}</span>}
       </div>
 
-      <button type="submit" disabled={isSubmitting}>Log in</button>
+      <Button type="submit" disabled={isSubmitting}>Log in</Button>
     </form>
   );
 }

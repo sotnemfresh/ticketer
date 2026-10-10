@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import type { Ticket } from '../types/ticket'
+import type { Ticket } from '../../../types/ticket'
 import './TicketList.css'
-import { formatRelativeTime } from '../helpers/formatRelativeTime'
+import { formatRelativeTime } from '../../../helpers/formatRelativeTime'
 
 
 interface TicketListProps {

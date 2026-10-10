@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { Ticket, TicketStatus, TicketPriority } from '../types/ticket'
-import type { User } from '../types/user'
+import type { Ticket, TicketStatus, TicketPriority } from '../../../types/ticket'
+import type { User } from '../../../types/user'
 import './TicketSidebar.css'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export interface TicketSidebarChanges {
   status: TicketStatus
@@ -79,6 +88,10 @@ const TicketSidebar = ({ ticket, users = [], onSave }: TicketSidebarProps) => {
       <div className="ticket-sidebar-field">
         <span className="ticket-sidebar-label">Assignee</span>
         <div className="ticket-sidebar-select-wrap">
+
+
+
+
           <select
             className="ticket-sidebar-select"
             value={draftAssigneeId ?? ''}
@@ -91,6 +104,7 @@ const TicketSidebar = ({ ticket, users = [], onSave }: TicketSidebarProps) => {
               </option>
             ))}
           </select>
+
         </div>
       </div>
 
@@ -111,9 +125,9 @@ const TicketSidebar = ({ ticket, users = [], onSave }: TicketSidebarProps) => {
         </div>
       </div>
 
-      <button type="button" className="ticket-sidebar-save" onClick={handleSave}>
+      <Button type="button" className="ticket-sidebar-save" onClick={handleSave}>
         Save
-      </button>
+      </Button>
     </aside>
   )
 }
