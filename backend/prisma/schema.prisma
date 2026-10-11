@@ -16,6 +16,7 @@ enum TicketStatus {
   OPEN
   NEW
   PENDING
+  ON_HOLD
   CLOSED
   SOLVED
 }

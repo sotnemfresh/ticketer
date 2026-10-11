@@ -1,13 +1,30 @@
-import { Outlet, useMatch } from "react-router-dom"
+import { useEffect } from "react"
+import { Outlet, useLocation, useMatch, useNavigate } from "react-router-dom"
+import { useQueryClient } from "@tanstack/react-query"
 import Navbar from "./Navbar"
 import { AppSidebar } from "./app-sidebar"
 import { IconRail } from "./IconRail"
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { Toaster } from "@/components/ui/toast"
 import { TicketDraftProvider } from "@/components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
+import { AUTH_UNAUTHORIZED_EVENT } from "@/services/apiClient"
 
 export default function AppLayout() {
     const detailMatch = useMatch("/tickets/:ticketId")
+    const navigate = useNavigate()
+    const location = useLocation()
+    const queryClient = useQueryClient()
+
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            queryClient.clear()
+            navigate("/login", { replace: true, state: { from: location } })
+        }
+
+        window.addEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
+        return () => window.removeEventListener(AUTH_UNAUTHORIZED_EVENT, handleUnauthorized)
+    }, [location, navigate, queryClient])
 
     const sidebarAndPage = (
         <>
@@ -19,7 +36,8 @@ export default function AppLayout() {
     )
     return (
         <TooltipProvider>
-            <div className="flex h-svh flex-col overflow-hidden bg-background">
+            <Toaster>
+              <div className="flex h-svh flex-col overflow-hidden bg-background">
                 <Navbar />
 
                 <div className="flex min-h-0 flex-1">
@@ -34,7 +52,8 @@ export default function AppLayout() {
                         )}
                     </SidebarProvider>
                 </div>
-            </div>
+                            </div>
+                        </Toaster>
         </TooltipProvider>
     )
 }

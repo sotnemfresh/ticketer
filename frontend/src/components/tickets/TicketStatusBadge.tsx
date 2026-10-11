@@ -17,7 +17,7 @@ interface TicketStatusBadgeProps {
 }
 
 export function TicketStatusBadge({ status }: TicketStatusBadgeProps) {
-  const normalizedStatus = status.toLowerCase() as DisplayTicketStatus
+  const normalizedStatus = status.toLowerCase().replaceAll("_", "-") as DisplayTicketStatus
   const label = normalizedStatus === "on-hold"
     ? "On-hold"
     : normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1)

@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+export const AUTH_UNAUTHORIZED_EVENT = "app:unauthorized";
 
 export async function apiClient(
   endpoint: string,
@@ -20,6 +21,9 @@ export async function apiClient(
       status?: number
     };
     error.status = response.status;
+      if (response.status === 401 && window.location.pathname !== "/login") {
+        window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));
+      }
     throw error;
   }
 

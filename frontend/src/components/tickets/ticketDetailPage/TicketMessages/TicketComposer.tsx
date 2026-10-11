@@ -12,12 +12,13 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import type { TicketStatus } from "@/types/ticket"
 
-const ticketStatuses: TicketStatus[] = ["open", "new", "pending", "solved", "closed"]
+const ticketStatuses: TicketStatus[] = ["open", "new", "pending", "on-hold", "solved", "closed"]
 
 const statusLabels: Record<TicketStatus, string> = {
 	open: "Open",
 	new: "New",
 	pending: "Pending",
+	"on-hold": "On-Hold",
 	solved: "Solved",
 	closed: "Closed",
 }
@@ -26,12 +27,14 @@ interface TicketComposerProps {
 	initialStatus: TicketStatus
 	onSubmit: (body: string, status: TicketStatus) => void | Promise<void>
 	isSubmitting?: boolean
+	showSubmitError?: boolean
 }
 
 export function TicketComposer({
 	initialStatus,
 	onSubmit,
 	isSubmitting = false,
+	showSubmitError = true,
 }: TicketComposerProps) {
 	const [body, setBody] = useState("")
 	const [status, setStatus] = useState(initialStatus)
@@ -58,7 +61,7 @@ export function TicketComposer({
 		<form className="shrink-0 space-y-3 border-t p-4" onSubmit={handleSubmit}>
 			<Textarea
 				aria-label="Write a ticket message"
-				aria-invalid={Boolean(error)}
+				aria-invalid={showSubmitError && Boolean(error)}
 				className="max-h-48 min-h-24 resize-y"
 				disabled={isSubmitting}
 				onChange={(event) => {
@@ -69,10 +72,12 @@ export function TicketComposer({
 				value={body}
 			/>
 			<div className="flex items-center justify-between gap-3">
-				<p aria-live="polite" className="min-h-5 text-sm text-destructive">
-					{error}
-				</p>
-				<ButtonGroup className="shrink-0">
+				{showSubmitError && (
+					<p aria-live="polite" className="min-h-5 text-sm text-destructive">
+						{error}
+					</p>
+				)}
+				<ButtonGroup className="ml-auto shrink-0">
 					<Button type="submit" disabled={isSubmitting}>
 						{isSubmitting ? "Submitting..." : `Submit as ${statusLabels[status]}`}
 					</Button>

@@ -11,13 +11,14 @@ const TICKET_URL = '/tickets'
 export interface CreateTicketData {
   subject: string
   description: string
-  status: 'open' | 'new' | 'pending' | 'closed' | 'solved'
+  status: 'open' | 'new' | 'pending' | 'on-hold' | 'closed' | 'solved'
   priority: 'low' | 'medium' | 'high' | 'urgent'
 }
 
 export interface UpdateTicketData {
   ticketId: number
-  status?: 'open' | 'new' | 'pending' | 'closed' | 'solved'
+  subject?: string
+  status?: 'open' | 'new' | 'pending' | 'on-hold' | 'closed' | 'solved'
   priority?: 'low' | 'medium' | 'high' | 'urgent'
   assigneeId?: number | null
   requesterId?: number
@@ -43,7 +44,11 @@ async function postTicket(data: CreateTicketData): Promise<Ticket> {
   try {
     return await apiClient(TICKET_URL, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        status: data.status.toUpperCase().replaceAll('-', '_'),
+        priority: data.priority.toUpperCase(),
+      }),
     })
   } catch (error) {
     if (error instanceof Error) {
@@ -54,16 +59,16 @@ async function postTicket(data: CreateTicketData): Promise<Ticket> {
   }
 }
 
-async function patchTicket({ ticketId, ...data }: UpdateTicketData): Promise<Ticket> {
+async function postTicketUpdate({ ticketId, ...data }: UpdateTicketData): Promise<Ticket> {
   try {
     const { status, priority, ...ticketChanges } = data
-    return await apiClient(`${TICKET_URL}/${ticketId}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
+    return await apiClient(`${TICKET_URL}/${ticketId}/updates`, {
+      method: 'POST',
+      body: JSON.stringify({ changes: {
         ...ticketChanges,
-        ...(status ? { status: status.toUpperCase() } : {}),
+        ...(status ? { status: status.toUpperCase().replaceAll('-', '_') } : {}),
         ...(priority ? { priority: priority.toUpperCase() } : {}),
-      }),
+      } }),
     })
   } catch (error) {
     if (error instanceof Error) {
@@ -105,7 +110,7 @@ export function useUpdateTicket() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: patchTicket,
+    mutationFn: postTicketUpdate,
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['ticket', String(variables.ticketId)] })
       queryClient.invalidateQueries({ queryKey: ['tickets'] })

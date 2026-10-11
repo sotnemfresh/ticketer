@@ -4,11 +4,23 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 import type { TicketMessage } from '../types/ticketMessage'
+import type { Ticket, TicketUpdateChanges } from '../types/ticket'
 import { apiClient } from './apiClient'
 
 export interface CreateMessageData {
   ticketId: number
   body: string
+}
+
+export interface SubmitTicketUpdateData {
+  ticketId: number
+  changes?: TicketUpdateChanges
+  message?: string
+}
+
+export interface SubmitTicketUpdateResponse {
+  ticket: Ticket
+  message: TicketMessage | null
 }
 
 async function getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
@@ -45,18 +57,30 @@ async function getTicketMessages(ticketId: string): Promise<TicketMessage[]> {
   }
 }
 
-async function postMessage(data: CreateMessageData): Promise<TicketMessage> {
+async function postTicketUpdate(data: SubmitTicketUpdateData): Promise<SubmitTicketUpdateResponse> {
   try {
-    return await apiClient(`/tickets/${data.ticketId}/messages`, {
+    const changes = data.changes
+    const apiChanges = changes && {
+      ...changes,
+      ...(changes.status
+        ? { status: changes.status.toUpperCase().replaceAll('-', '_') }
+        : {}),
+      ...(changes.priority ? { priority: changes.priority.toUpperCase() } : {}),
+    }
+
+    return await apiClient(`/tickets/${data.ticketId}/updates`, {
       method: 'POST',
-      body: JSON.stringify({ body: data.body }),
+      body: JSON.stringify({
+        ...(apiChanges && Object.keys(apiChanges).length > 0 ? { changes: apiChanges } : {}),
+        ...(data.message?.trim() ? { message: data.message.trim() } : {}),
+      }),
     })
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(error.message || 'Something went wrong while creating the ticket message')
+      throw new Error(error.message || 'Something went wrong while submitting the ticket update')
     }
 
-    throw new Error('Something went wrong while creating the ticket message')
+    throw new Error('Something went wrong while submitting the ticket update')
   }
 }
 
@@ -71,10 +95,24 @@ export function useCreateMessage() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: postMessage,
-    onSuccess: (_data, variables) => {
+    mutationFn: (data: CreateMessageData) =>
+      postTicketUpdate({ ticketId: data.ticketId, message: data.body }),
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ticketMessages', String(variables.ticketId)] })
+      queryClient.invalidateQueries({ queryKey: ['ticket', String(variables.ticketId)] })
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    },
+  })
+}
+
+export function useSubmitTicketUpdate() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: postTicketUpdate,
+    onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['ticketMessages'],
+        queryKey: ['ticketMessages', String(variables.ticketId)],
       })
       queryClient.invalidateQueries({
         queryKey: ['ticket', String(variables.ticketId)],

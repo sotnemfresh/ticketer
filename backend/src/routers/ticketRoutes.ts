@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
-import { createTicket, createTicketMessage, getAllTickets, getTicketById, getTicketMessages, updateTicket } from '../services/ticketService.js'
-import type { CreateTicketBody, UpdateTicketBody } from '../types/ticket.js'
+import { createTicket, getAllTickets, getTicketById, getTicketMessages, submitTicketUpdate } from '../services/ticketService.js'
+import type { CreateTicketBody, SubmitTicketUpdateBody } from '../types/ticket.js'
 import { requireAuth } from '../middleware/requireAuth.js'
 
 export const ticketRouter = Router()
@@ -48,21 +48,6 @@ ticketRouter.post('/', async (req: Request, res: Response) => {
   }
 })
 
-/* Ticket change handling */
-/* Update a ticket by id */
-ticketRouter.patch('/:ticketId', async (req: Request, res: Response) => {
-  try {
-    const body = req.body as UpdateTicketBody
-    const updated = await updateTicket(req.params.ticketId, body)
-    return res.status(200).json(updated)
-  } catch (error) {
-    const err = error as { status?: number; message?: string }
-    return res.status(err.status ?? 500).json({
-      message: err.message ?? 'Something went wrong while updating the ticket',
-    })
-  }
-})
-
 /* --Ticket message handling-- */
 /* Get the ticket messages */
 ticketRouter.get('/:ticketId/messages', async (req, res) => {
@@ -77,21 +62,21 @@ ticketRouter.get('/:ticketId/messages', async (req, res) => {
   }
 })
 
-/* Create a new message for a ticket */
-ticketRouter.post('/:ticketId/messages', async (req: Request, res: Response) => {
+/* Submit ticket field changes and an optional message together */
+ticketRouter.post('/:ticketId/updates', async (req: Request, res: Response) => {
   try {
-    const message = await createTicketMessage(
+    const update = await submitTicketUpdate(
       req.params.ticketId,
-      { body: req.body.body },
+      req.body as SubmitTicketUpdateBody,
       req.session.userId!,
     )
 
-    return res.status(201).json(message)
+    return res.status(200).json(update)
   } catch (error) {
     const err = error as { status?: number; message?: string }
 
     return res.status(err.status ?? 500).json({
-      message: err.message ?? 'Something went wrong while creating the ticket message',
+      message: err.message ?? 'Something went wrong while submitting the ticket update',
     })
   }
 })

@@ -1,9 +1,11 @@
+import { useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "@/components/ui/toast"
 import { diffChanges } from "@/helpers/diffChanges"
-import { useCreateMessage, useTicketMessages } from "@/services/ticketMessageService"
-import { useTicket, useUpdateTicket } from "@/services/ticketService"
-import type { Ticket, TicketPriority, TicketStatus } from "@/types/ticket"
+import { useSubmitTicketUpdate, useTicketMessages } from "@/services/ticketMessageService"
+import { useTicket } from "@/services/ticketService"
+import type { Ticket, TicketPriority, TicketStatus, TicketUpdateChanges } from "@/types/ticket"
 import type { TicketMessage } from "@/types/ticketMessage"
 import { TicketComposer } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketComposer"
 import { useTicketDraft } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
@@ -14,8 +16,20 @@ export default function TicketDetail() {
 	const { ticketId = "" } = useParams()
 	const ticketQuery = useTicket(ticketId)
 	const messagesQuery = useTicketMessages(ticketId)
-	const createMessage = useCreateMessage()
-	const updateTicket = useUpdateTicket()
+	const submitTicketUpdate = useSubmitTicketUpdate()
+
+	useEffect(() => {
+		if (!ticketQuery.error) return
+
+		toast.add({
+			id: `ticket-load-${ticketId}`,
+			title: "Could not load ticket",
+			description: ticketQuery.error instanceof Error
+				? ticketQuery.error.message
+				: "The ticket request failed.",
+			type: "error",
+		})
+	}, [ticketId, ticketQuery.error])
 
 	if (ticketQuery.isPending) {
 		return (
@@ -43,11 +57,8 @@ export default function TicketDetail() {
 			messages={messagesQuery.data ?? []}
 			messagesLoading={messagesQuery.isPending}
 			messagesError={messagesQuery.error}
-			isSubmitting={createMessage.isPending || updateTicket.isPending}
-			updateTicket={(changes) => updateTicket.mutateAsync(changes)}
-			createMessage={(body) =>
-				createMessage.mutateAsync({ ticketId: ticketQuery.data.id, body })
-			}
+			isSubmitting={submitTicketUpdate.isPending}
+			submitUpdate={(data) => submitTicketUpdate.mutateAsync(data)}
 		/>
 	)
 }
@@ -57,13 +68,10 @@ interface TicketDetailContentProps {
 	messages: TicketMessage[]
 	messagesLoading: boolean
 	messagesError: unknown
-	createMessage: (body: string) => Promise<unknown>
-	updateTicket: (changes: {
+	submitUpdate: (data: {
 		ticketId: number
-		status?: TicketStatus
-		priority?: TicketPriority
-		assigneeId?: number | null
-		requesterId?: number
+		changes?: TicketUpdateChanges
+		message?: string
 	}) => Promise<unknown>
 	isSubmitting: boolean
 }
@@ -74,20 +82,32 @@ function TicketDetailContent({
 	messagesLoading,
 	messagesError,
 	isSubmitting,
-	updateTicket,
-	createMessage,
+	submitUpdate,
 }: TicketDetailContentProps) {
 	const { draft, updateDraft, resetDraft } = useTicketDraft()
 	const subject = draft.subject ?? ticket.subject
-	const currentStatus = ticket.status.toLowerCase()
+	const currentStatus = ticket.status.toLowerCase().replaceAll("_", "-")
 	const status = (
-		["open", "new", "pending", "closed", "solved"].includes(currentStatus)
+		["open", "new", "pending", "on-hold", "closed", "solved"].includes(currentStatus)
 			? currentStatus as TicketStatus
 			: "open"
 	)
 	const currentPriority = ticket.priority.toLowerCase() as TicketPriority
 
-	async function handleSubmit(body: string, submitStatus: typeof ticket.status) {
+	useEffect(() => {
+		if (!messagesError) return
+
+		toast.add({
+			id: `ticket-messages-${ticket.id}`,
+			title: "Could not load messages",
+			description: messagesError instanceof Error
+				? messagesError.message
+				: "The message request failed.",
+			type: "error",
+		})
+	}, [messagesError, ticket.id])
+
+	async function handleSubmit(body: string, submitStatus: TicketStatus) {
 		const original = {
 			subject: ticket.subject,
 			status,
@@ -98,28 +118,44 @@ function TicketDetailContent({
 		const updated = { ...original, ...draft, status: submitStatus }
 		const changes = diffChanges(original, updated)
 
-		if (changes.subject !== undefined) {
-			throw new Error(
-				"Subject edits cannot be saved until the backend accepts subject updates.",
-			)
-		}
-
-		const { subject: _subject, ...ticketChanges } = changes
-		const hasTicketChanges = Object.keys(ticketChanges).length > 0
+		const hasTicketChanges = Object.keys(changes).length > 0
 		const hasMessage = body.trim().length > 0
 
 		if (!hasTicketChanges && !hasMessage) {
-			throw new Error("Make a ticket change or write a message before submitting.")
-		}
-		if (hasTicketChanges) {
-			await updateTicket({
-				ticketId: ticket.id,
-				...ticketChanges,
+			const error = new Error("Make a ticket change or write a message before submitting.")
+			toast.add({
+				title: "Nothing to submit",
+				description: error.message,
+				type: "error",
 			})
+			throw error
 		}
-		if (hasMessage) {
-			await createMessage(body.trim())
-		}
+		const submission = submitUpdate({
+			ticketId: ticket.id,
+			...(hasTicketChanges ? { changes } : {}),
+			...(hasMessage ? { message: body.trim() } : {}),
+		})
+		await toast.promise(submission, {
+			loading: {
+				title: "Saving ticket update",
+				description: "Applying changes and sending your message...",
+				type: "loading",
+			},
+			success: {
+				title: "Ticket updated",
+				description: hasMessage
+					? "Your message and ticket changes were saved."
+					: "Your ticket changes were saved.",
+				type: "success",
+			},
+			error: (error) => ({
+				title: "Could not update ticket",
+				description: error instanceof Error
+					? error.message
+					: "Your changes could not be saved.",
+				type: "error",
+			}),
+		})
 		resetDraft()
 	}
 
@@ -140,6 +176,7 @@ function TicketDetailContent({
 				initialStatus={status}
 				onSubmit={handleSubmit}
 				isSubmitting={isSubmitting}
+				showSubmitError={false}
 			/>
 		</section>
 	)

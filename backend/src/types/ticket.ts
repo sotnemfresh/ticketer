@@ -12,6 +12,7 @@ export const statusMap = {
   OPEN: 'OPEN',
   NEW: 'NEW',
   PENDING: 'PENDING',
+  ON_HOLD: 'ON_HOLD',
   CLOSED: 'CLOSED',
   SOLVED: 'SOLVED',
 } as const
@@ -32,8 +33,14 @@ export type CreateTicketBody = {
 }
 
 export type UpdateTicketBody = {
+  subject?: string
   status?: keyof typeof statusMap
   priority?: keyof typeof priorityMap
   assigneeId?: number | null
   requesterId?: number
+}
+
+export type SubmitTicketUpdateBody = {
+  changes?: UpdateTicketBody
+  message?: string
 }
