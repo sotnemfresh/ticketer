@@ -23,30 +23,23 @@ const statusLabels: Record<TicketStatus, string> = {
 }
 
 interface TicketComposerProps {
-	status: TicketStatus
-	onStatusChange: (status: TicketStatus) => void
+	initialStatus: TicketStatus
 	onSubmit: (body: string, status: TicketStatus) => void | Promise<void>
 	isSubmitting?: boolean
 }
 
 export function TicketComposer({
-	status,
-	onStatusChange,
+	initialStatus,
 	onSubmit,
 	isSubmitting = false,
 }: TicketComposerProps) {
 	const [body, setBody] = useState("")
+	const [status, setStatus] = useState(initialStatus)
 	const [error, setError] = useState<string | null>(null)
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault()
 		const message = body.trim()
-
-		if (!message) {
-			setError("Write a message before submitting.")
-			return
-		}
-
 		setError(null)
 
 		try {
@@ -80,7 +73,7 @@ export function TicketComposer({
 					{error}
 				</p>
 				<ButtonGroup className="shrink-0">
-					<Button type="submit" disabled={isSubmitting || !body.trim()}>
+					<Button type="submit" disabled={isSubmitting}>
 						{isSubmitting ? "Submitting..." : `Submit as ${statusLabels[status]}`}
 					</Button>
 					<DropdownMenu>
@@ -102,7 +95,7 @@ export function TicketComposer({
 								value={status}
 								onValueChange={(value) => {
 									if (ticketStatuses.includes(value as TicketStatus)) {
-										onStatusChange(value as TicketStatus)
+										setStatus(value as TicketStatus)
 									}
 								}}
 							>

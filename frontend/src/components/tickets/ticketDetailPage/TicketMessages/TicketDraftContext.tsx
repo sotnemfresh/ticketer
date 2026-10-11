@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from "react"
-import type { TicketPriority, TicketStatus } from "@/types/ticket"
+import type { TicketPriority } from "@/types/ticket"
 
 export interface TicketDraft {
 	subject?: string
-	status?: TicketStatus
 	priority?: TicketPriority
 	requesterId?: number
 	assigneeId?: number | null

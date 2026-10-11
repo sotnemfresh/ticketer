@@ -2,11 +2,11 @@ import { useParams } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
 import { diffChanges } from "@/helpers/diffChanges"
 import { useCreateMessage, useTicketMessages } from "@/services/ticketMessageService"
-import { useTicket } from "@/services/ticketService"
-import type { Ticket } from "@/types/ticket"
+import { useTicket, useUpdateTicket } from "@/services/ticketService"
+import type { Ticket, TicketPriority, TicketStatus } from "@/types/ticket"
 import type { TicketMessage } from "@/types/ticketMessage"
 import { TicketComposer } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketComposer"
-import { useTicketDraft, TicketDraftProvider } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
+import { useTicketDraft } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
 import { TicketHeader } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketHeader"
 import { TicketMessageList } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketMessageList"
 
@@ -15,6 +15,7 @@ export default function TicketDetail() {
 	const ticketQuery = useTicket(ticketId)
 	const messagesQuery = useTicketMessages(ticketId)
 	const createMessage = useCreateMessage()
+	const updateTicket = useUpdateTicket()
 
 	if (ticketQuery.isPending) {
 		return (
@@ -37,17 +38,17 @@ export default function TicketDetail() {
 	}
 
 	return (
-		<TicketDraftProvider key={ticketId}>
-			<TicketDetailContent
-				ticket={ticketQuery.data}
-				messages={messagesQuery.data ?? []}
-				messagesLoading={messagesQuery.isPending}
-				messagesError={messagesQuery.error}
-				createMessage={(body) =>
-					createMessage.mutateAsync({ ticketId: ticketQuery.data.id, body })
-				}
-			/>
-		</TicketDraftProvider>
+		<TicketDetailContent
+			ticket={ticketQuery.data}
+			messages={messagesQuery.data ?? []}
+			messagesLoading={messagesQuery.isPending}
+			messagesError={messagesQuery.error}
+			isSubmitting={createMessage.isPending || updateTicket.isPending}
+			updateTicket={(changes) => updateTicket.mutateAsync(changes)}
+			createMessage={(body) =>
+				createMessage.mutateAsync({ ticketId: ticketQuery.data.id, body })
+			}
+		/>
 	)
 }
 
@@ -57,6 +58,14 @@ interface TicketDetailContentProps {
 	messagesLoading: boolean
 	messagesError: unknown
 	createMessage: (body: string) => Promise<unknown>
+	updateTicket: (changes: {
+		ticketId: number
+		status?: TicketStatus
+		priority?: TicketPriority
+		assigneeId?: number | null
+		requesterId?: number
+	}) => Promise<unknown>
+	isSubmitting: boolean
 }
 
 function TicketDetailContent({
@@ -64,30 +73,53 @@ function TicketDetailContent({
 	messages,
 	messagesLoading,
 	messagesError,
+	isSubmitting,
+	updateTicket,
 	createMessage,
 }: TicketDetailContentProps) {
 	const { draft, updateDraft, resetDraft } = useTicketDraft()
 	const subject = draft.subject ?? ticket.subject
-	const status = draft.status ?? ticket.status
+	const currentStatus = ticket.status.toLowerCase()
+	const status = (
+		["open", "new", "pending", "closed", "solved"].includes(currentStatus)
+			? currentStatus as TicketStatus
+			: "open"
+	)
+	const currentPriority = ticket.priority.toLowerCase() as TicketPriority
 
 	async function handleSubmit(body: string, submitStatus: typeof ticket.status) {
 		const original = {
 			subject: ticket.subject,
-			status: ticket.status,
-			priority: ticket.priority,
+			status,
+			priority: currentPriority,
 			requesterId: ticket.requester?.id,
 			assigneeId: ticket.assignee?.id,
 		}
 		const updated = { ...original, ...draft, status: submitStatus }
 		const changes = diffChanges(original, updated)
 
-		if (Object.keys(changes).length > 0) {
+		if (changes.subject !== undefined) {
 			throw new Error(
-				"Ticket edits are staged, but saving them with a message is not connected yet.",
+				"Subject edits cannot be saved until the backend accepts subject updates.",
 			)
 		}
 
-		await createMessage(body)
+		const { subject: _subject, ...ticketChanges } = changes
+		const hasTicketChanges = Object.keys(ticketChanges).length > 0
+		const hasMessage = body.trim().length > 0
+
+		if (!hasTicketChanges && !hasMessage) {
+			throw new Error("Make a ticket change or write a message before submitting.")
+		}
+		if (hasTicketChanges) {
+			await updateTicket({
+				ticketId: ticket.id,
+				...ticketChanges,
+			})
+		}
+		if (hasMessage) {
+			await createMessage(body.trim())
+		}
 		resetDraft()
 	}
 
@@ -104,9 +136,10 @@ function TicketDetailContent({
 			)}
 			<TicketMessageList messages={messages} isLoading={messagesLoading} />
 			<TicketComposer
-				status={status}
-				onStatusChange={(value) => updateDraft({ status: value })}
+				key={ticket.id}
+				initialStatus={status}
 				onSubmit={handleSubmit}
+				isSubmitting={isSubmitting}
 			/>
 		</section>
 	)

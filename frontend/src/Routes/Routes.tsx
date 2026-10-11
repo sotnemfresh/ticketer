@@ -3,7 +3,7 @@ import { ProtectedRoute } from './ProtectedRoute'
 import App from '../App'
 import TicketListTable from '../pages/TicketsPage/TicketListTable'
 import LoginPage from '../pages/LoginPage/LoginPage'
-import TicketDetail from '../pages/TicketDetailPage/TicketDetail'
+import TicketDetail from '../pages/TicketDetailPage/TicketDetailPage'
 
 export const router = createBrowserRouter([
   {

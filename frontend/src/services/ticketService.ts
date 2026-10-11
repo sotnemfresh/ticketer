@@ -56,9 +56,14 @@ async function postTicket(data: CreateTicketData): Promise<Ticket> {
 
 async function patchTicket({ ticketId, ...data }: UpdateTicketData): Promise<Ticket> {
   try {
+    const { status, priority, ...ticketChanges } = data
     return await apiClient(`${TICKET_URL}/${ticketId}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...ticketChanges,
+        ...(status ? { status: status.toUpperCase() } : {}),
+        ...(priority ? { priority: priority.toUpperCase() } : {}),
+      }),
     })
   } catch (error) {
     if (error instanceof Error) {
