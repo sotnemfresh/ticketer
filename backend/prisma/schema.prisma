@@ -31,7 +31,7 @@ enum TicketPriority {
 model Ticket {
   id          Int            @id @default(autoincrement())
   subject     String
-  description String
+  description String?
   status      TicketStatus   @default(NEW)
   priority    TicketPriority @default(MEDIUM)
 

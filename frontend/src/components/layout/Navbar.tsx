@@ -1,6 +1,6 @@
 import { UserMenu } from './UserMenu'
 import { ModeToggle } from './mode-toggle'
-
+import { TicketCreationContainer } from "@/components/tickets/ticketCreationContainer"
 
 export default function Navbar() {
   return (
@@ -9,6 +9,8 @@ export default function Navbar() {
       <div className="flex items-center gap-6">
         <h1>Navbar</h1>
         <ModeToggle />
+        <TicketCreationContainer />
+
       </div>
       <UserMenu />
     </header>

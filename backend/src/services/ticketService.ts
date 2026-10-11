@@ -41,17 +41,17 @@ export async function getTicketById(rawTicketId: string | string[]) {
 }
 
 export async function createTicket(body: CreateTicketBody, loggedInUserId: number,) {
-  const { subject, description, status, priority } = body
+  const { subject, description, status, priority, requesterId, assigneeId } = body
 
-  if (!subject || !description || !status || !priority) {
+  if (!subject?.trim()) {
     throw {
       status: 400,
-      message: 'subject, description, status, and priority are required',
+      message: 'subject is required',
     } satisfies ServiceError
   }
 
-  const mappedStatus = statusMap[status]
-  const mappedPriority = priorityMap[priority]
+  const mappedStatus = status === undefined ? statusMap.NEW : statusMap[status]
+  const mappedPriority = priority === undefined ? priorityMap.MEDIUM : priorityMap[priority]
 
   if (!mappedStatus || !mappedPriority) {
     throw {
@@ -60,28 +60,45 @@ export async function createTicket(body: CreateTicketBody, loggedInUserId: numbe
     } satisfies ServiceError
   }
 
-  const userResult = await parseUserId(loggedInUserId)
+  const requesterResult = await parseUserId(requesterId ?? loggedInUserId)
 
-  if ('error' in userResult) {
+  if ('error' in requesterResult) {
     throw {
-      status: userResult.error === 'User not found' ? 404 : 400,
-      message: userResult.error,
+      status: requesterResult.error === 'User not found' ? 404 : 400,
+      message: requesterResult.error,
     } satisfies ServiceError
+  }
+
+  if (assigneeId !== undefined && assigneeId !== null) {
+    const assigneeResult = await parseUserId(assigneeId)
+    if ('error' in assigneeResult) {
+      throw {
+        status: assigneeResult.error === 'User not found' ? 404 : 400,
+        message: assigneeResult.error,
+      } satisfies ServiceError
+    }
   }
 
   try {
     const data = {
-      subject,
-      description,
+      subject: subject.trim(),
+      ...(description?.trim() ? { description: description.trim() } : {}),
       status: mappedStatus,
       priority: mappedPriority,
       requester: {
-        connect: { id: loggedInUserId },
+        connect: { id: requesterResult.userId },
       },
+      ...(assigneeId !== undefined && assigneeId !== null
+        ? { assignee: { connect: { id: assigneeId } } }
+        : {}),
     }
 
     return await prisma.ticket.create({
       data,
+      include: {
+        requester: { select: { id: true, name: true, email: true } },
+        assignee: { select: { id: true, name: true, email: true } },
+      },
     })
   } catch {
     throw {

@@ -15,7 +15,7 @@ export interface TicketUpdateChanges {
 export interface Ticket {
     id: number
     subject: string
-    description: string
+    description: string | null
     status: TicketStatus
     priority: TicketPriority
 

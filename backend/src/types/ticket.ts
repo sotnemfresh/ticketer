@@ -1,7 +1,7 @@
 export interface Ticket {
   id: number;
   subject: string;
-  description: string;
+  description: string | null;
   status: string;
   priority: string;
   createdAt: Date;
@@ -30,6 +30,7 @@ export type CreateTicketBody = {
   status?: keyof typeof statusMap
   priority?: keyof typeof priorityMap
   requesterId?: number
+  assigneeId?: number | null
 }
 
 export type UpdateTicketBody = {

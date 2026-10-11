@@ -3,16 +3,17 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import type { Ticket } from '../types/ticket'
+import type { Ticket, TicketStatus } from '../types/ticket'
 import { apiClient } from './apiClient'
 
 const TICKET_URL = '/tickets'
 
 export interface CreateTicketData {
   subject: string
-  description: string
-  status: 'open' | 'new' | 'pending' | 'on-hold' | 'closed' | 'solved'
+  status?: TicketStatus
   priority: 'low' | 'medium' | 'high' | 'urgent'
+  requesterId?: number
+  assigneeId?: number | null
 }
 
 export interface UpdateTicketData {
@@ -42,12 +43,13 @@ async function getTicketById(ticketId: string): Promise<Ticket> {
 
 async function postTicket(data: CreateTicketData): Promise<Ticket> {
   try {
+    const { status, priority, ...ticketData } = data
     return await apiClient(TICKET_URL, {
       method: 'POST',
       body: JSON.stringify({
-        ...data,
-        status: data.status.toUpperCase().replaceAll('-', '_'),
-        priority: data.priority.toUpperCase(),
+        ...ticketData,
+        ...(status ? { status: status.toUpperCase().replaceAll('-', '_') } : {}),
+        priority: priority.toUpperCase(),
       }),
     })
   } catch (error) {
