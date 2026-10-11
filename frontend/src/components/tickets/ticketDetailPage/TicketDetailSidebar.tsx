@@ -1,3 +1,4 @@
+import { TicketStatusBadge } from "../TicketStatusBadge"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -14,6 +15,10 @@ export default function TicketDetailSidebar({ ticket, users }: TicketDetailSideb
 
     return (
         <Field>
+            <div className="flex items-center gap-2 pb-2">
+                <TicketStatusBadge status={ticket.status} />
+                <span className="text-sm font-medium">Ticket #{ticket.id}</span>
+            </div>
             <FieldLabel>
                 Requester
             </FieldLabel>

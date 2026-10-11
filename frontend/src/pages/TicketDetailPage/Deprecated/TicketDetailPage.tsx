@@ -1,14 +1,14 @@
 // TicketDetailPage.tsx
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import TicketMessageForm, { type NewMessageData } from '../../components/tickets/ticketDetailPage/TicketMessageForm'
-import { TicketMessageList } from '../../components/tickets/ticketDetailPage/TicketMessageList'
-import TicketSidebar, { type TicketSidebarChanges } from '../../components/tickets/ticketDetailPage/TicketSidebar'
-import { useCreateMessage, useTicketMessages } from '../../services/ticketMessageService'
+import TicketMessageForm, { type NewMessageData } from '../../../components/tickets/ticketDetailPage/deprecated/TicketMessageForm'
+import { TicketMessageList } from '../../../components/tickets/ticketDetailPage/deprecated/TicketMessageList'
+import TicketSidebar, { type TicketSidebarChanges } from '../../../components/tickets/ticketDetailPage/deprecated/TicketSidebar'
+import { useCreateMessage, useTicketMessages } from '../../../services/ticketMessageService'
 import './TicketDetailPage.css'
-import { useTicket, useUpdateTicket } from '../../services/ticketService'
-import { useUsers } from '../../services/userService'
-import { diffChanges } from '../../helpers/diffChanges'
+import { useTicket, useUpdateTicket } from '../../../services/ticketService'
+import { useUsers } from '../../../services/userService'
+import { diffChanges } from '../../../helpers/diffChanges'
 import { Button } from '@/components/ui/button'
 
 

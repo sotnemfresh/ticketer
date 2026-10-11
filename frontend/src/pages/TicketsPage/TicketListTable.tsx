@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom"
 import { useTickets } from "@/services/ticketService"
-import { columns } from "./columns"
-import { DataTable } from "./data-table"
+import { columns } from "../../components/tickets/ticketPage/ticketList/columns"
+import { DataTable } from "../../components/tickets/ticketPage/ticketList/data-table"
 
 
 export default function TicketListTable() {

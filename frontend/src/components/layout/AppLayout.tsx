@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom"
 import Navbar from "./Navbar"
 import { AppSidebar } from "./app-sidebar"
+import { IconRail } from "./IconRail"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
@@ -11,6 +12,7 @@ export default function AppLayout() {
                 <Navbar />
 
                 <div className="flex min-h-0 flex-1">
+                    <IconRail />
                     <SidebarProvider className="relative min-h-0 flex-1">
                         <AppSidebar />
 

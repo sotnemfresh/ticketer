@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Ticket, TicketStatus, TicketPriority } from '../../../types/ticket'
-import type { User } from '../../../types/user'
+import type { Ticket, TicketStatus, TicketPriority } from '../../../../types/ticket'
+import type { User } from '../../../../types/user'
 import './TicketSidebar.css'
 import { Button } from '@/components/ui/button'
 import {

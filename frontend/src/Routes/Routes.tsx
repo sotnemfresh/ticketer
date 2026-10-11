@@ -1,10 +1,9 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './ProtectedRoute'
 import App from '../App'
-import TicketsPage from '../pages/TicketsPage/TicketsPage'
-import TicketListTable from '../components/tickets/ticketPage/ticketList/TicketListTable'
-import TicketDetailPage from '../pages/TicketDetailPage/TicketDetailPage'
+import TicketListTable from '../pages/TicketsPage/TicketListTable'
 import LoginPage from '../pages/LoginPage/LoginPage'
+import TicketDetail from '../pages/TicketDetailPage/TicketDetail'
 
 export const router = createBrowserRouter([
   {
@@ -28,7 +27,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "tickets/:ticketId",
-            element: <TicketDetailPage />,
+            element: <TicketDetail />,
           },
         ],
       },

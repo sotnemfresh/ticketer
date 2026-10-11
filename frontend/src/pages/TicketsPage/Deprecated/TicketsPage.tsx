@@ -1,9 +1,9 @@
 import './TicketsPage.css'
 import { useState } from 'react'
-import TicketForm, { type NewTicketData } from '../../components/tickets/ticketPage/TicketForm'
-import { TicketList } from '../../components/tickets/ticketPage/TicketList'
+import TicketForm, { type NewTicketData } from '../../components/tickets/ticketPage/Deprecated/TicketForm'
+import { TicketList } from '../../components/tickets/ticketPage/Deprecated/TicketList'
 import { useCreateTicket, useTickets } from '../../services/ticketService'
-import TicketSearch from "../../components/tickets/ticketPage/TicketSearch";
+import TicketSearch from "../../components/tickets/ticketPage/Deprecated/TicketSearch";
 import { Button } from '@/components/ui/button'
 
 export default function TicketsPage() {

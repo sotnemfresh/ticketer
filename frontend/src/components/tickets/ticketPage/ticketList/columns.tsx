@@ -1,11 +1,11 @@
 "use client"
-
 import { createColumnHelper } from "@tanstack/react-table"
 import { ArrowUpDown } from "lucide-react"
 import { formatRelativeTime } from '@/helpers/formatRelativeTime'
 import { MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { TicketStatusBadge } from "../../TicketStatusBadge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,6 +88,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("status", {
     header: "Status",
+    cell: ({ row }) => <TicketStatusBadge status={row.original.status} />,
   }),
   columnHelper.accessor("priority", {
     header: ({ column }) => {
