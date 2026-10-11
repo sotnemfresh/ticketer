@@ -11,7 +11,7 @@ export default function AppLayout() {
                 <Navbar />
 
                 <div className="flex min-h-0 flex-1">
-                    <SidebarProvider className="min-h-0 flex-1">
+                    <SidebarProvider className="relative min-h-0 flex-1">
                         <AppSidebar />
 
                         <main className="min-w-0 flex-1 overflow-auto">
