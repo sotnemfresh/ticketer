@@ -4,13 +4,18 @@ import {
     SidebarGroupContent,
     SidebarGroupLabel,
     SidebarMenu,
+    SidebarMenuBadge,
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useTickets } from "@/services/ticketService"
+import { useCurrentUser } from "@/hooks/useCurrentUser"
 import { ticketViews, DEFAULT_VIEW_ID } from "./TicketViews"
 
 export default function TicketViewsSidebar() {
     const [params] = useSearchParams()
+    const { data: tickets = [] } = useTickets()
+    const { data: currentUser } = useCurrentUser()
     const activeId = params.get("view") ?? DEFAULT_VIEW_ID
 
     return (
@@ -26,6 +31,9 @@ export default function TicketViewsSidebar() {
                             >
                                 {view.label}
                             </SidebarMenuButton>
+                            <SidebarMenuBadge>
+                                {tickets.filter((t) => view.filter(t, currentUser?.id)).length}
+                            </SidebarMenuBadge>
                         </SidebarMenuItem>
                     ))}
                 </SidebarMenu>
