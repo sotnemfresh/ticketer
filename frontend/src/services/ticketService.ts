@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import type { Ticket, TicketStatus } from '../types/ticket'
+import type { Ticket, TicketPriority, TicketStatus } from '../types/ticket'
 import { apiClient } from './apiClient'
 
 const TICKET_URL = '/tickets'
@@ -25,9 +25,18 @@ export interface UpdateTicketData {
   requesterId?: number
 }
 
+function normalizeTicket(t: Ticket): Ticket {
+  return {
+    ...t,
+    status: t.status.toLowerCase().replaceAll('_', '-') as TicketStatus,
+    priority: t.priority.toLowerCase() as TicketPriority,
+  }
+}
+
 async function getTickets(): Promise<Ticket[]> {
   try {
-    return await apiClient(TICKET_URL)
+    const tickets: Ticket[] = await apiClient(TICKET_URL)
+    return tickets.map(normalizeTicket)
   } catch {
     throw new Error('Failed to fetch tickets')
   }
