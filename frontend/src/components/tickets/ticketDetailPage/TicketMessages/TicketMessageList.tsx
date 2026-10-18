@@ -67,7 +67,7 @@ export function TicketMessageList({
                                         </MessageHeader>
                                         <Bubble>
                                             <BubbleContent>
-                                                {message.body}
+                                                {message.bodyText}
                                             </BubbleContent>
                                         </Bubble>
                                     </MessageContent>

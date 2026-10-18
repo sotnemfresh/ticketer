@@ -22,7 +22,7 @@ export function TicketMessageList({ ticketMessages }: TicketMessageListProps) {
                             <strong>{message.authorName ?? 'Unknown author'}</strong>
                             <span> — {new Date(message.createdAt).toLocaleString()}</span>
                         </p>
-                        <p>{message.body}</p>
+                        <p>{message.bodyText}</p>
                     </li>
                 ))}
             </ul>

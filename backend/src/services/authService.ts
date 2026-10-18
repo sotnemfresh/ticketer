@@ -8,7 +8,7 @@ export async function loginUser(email: string, password: string) {
     },
   });
 
-  if (!user) {
+  if (!user || !user.passwordHash) {
     return null;
   }
 

@@ -34,46 +34,129 @@ model Ticket {
   description String?
   status      TicketStatus   @default(NEW)
   priority    TicketPriority @default(MEDIUM)
+  source      TicketSource   @default(WEB)
 
   requesterId Int
   assigneeId  Int?
 
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  conversationId String?
+  closedAt       DateTime?
 
-  messages TicketMessage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  requester User @relation("TicketRequester", fields: [requesterId], references: [id])
+  messages  TicketMessage[]
+  followers TicketFollower[]
+
+  requester User  @relation("TicketRequester", fields: [requesterId], references: [id])
   assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
+
+  @@index([conversationId])
+  @@index([status, closedAt])
 }
 
 model TicketMessage {
-  id        Int      @id @default(autoincrement())
-  ticketId  Int
-  authorId  Int
-  body      String
+  id       Int         @id @default(autoincrement())
+  ticketId Int
+  authorId Int?
+  type     MessageType @default(INTERNAL_NOTE)
+
+  authorEmail String?
+  authorName  String?
+
+  bodyText String
+  bodyHtml String?
+
+  messageIdHeader String?  @unique
+  inReplyTo       String?
+  references      String[]
+  graphMessageId  String?  @unique
+
   createdAt DateTime @default(now())
 
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  author    User     @relation(fields: [authorId], references: [id])
+  ticket      Ticket       @relation(fields: [ticketId], references: [id])
+  author      User?        @relation(fields: [authorId], references: [id])
+  attachments Attachment[]
+
+  @@index([ticketId, createdAt])
+  @@index([inReplyTo])
+}
+
+model Attachment {
+  id                Int       @id @default(autoincrement())
+  messageId         Int
+  filename          String
+  mimeType          String
+  size              Int
+  contentId         String?
+  isInline          Boolean   @default(false)
+  storageKey        String?   @unique
+  graphAttachmentId String?
+  purgedAt          DateTime?
+  createdAt         DateTime  @default(now())
+
+  message TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
 }
 
 enum UserRole {
   ADMIN
   AGENT
   VIEWER
+  CUSTOMER
+}
+
+enum MessageType {
+  INBOUND // email received from a customer
+  OUTBOUND // public reply, emailed to requester and followers
+  INTERNAL_NOTE // never emailed
+}
+
+enum TicketSource {
+  WEB
+  EMAIL
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  name     String
-  email    String   @unique
-  passwordHash String
-  role     UserRole @default(AGENT)
-  jobTitle String?
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         UserRole @default(AGENT)
+  jobTitle     String?
 
   requestedTickets Ticket[] @relation("TicketRequester")
   assignedTickets  Ticket[] @relation("TicketAssignee")
 
-  messages         TicketMessage[]
+  messages  TicketMessage[]
+  following TicketFollower[]
+}
+
+enum FollowerType {
+  CC
+  FOLLOWER
+}
+
+model TicketFollower {
+  id       Int    @id @default(autoincrement())
+  ticketId Int
+  userId   Int?
+  email    String
+  type     FollowerType @default(CC)
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@unique([ticketId, email])
+}
+
+model MailboxSettings {
+  id             Int       @id @default(1)
+  mailboxAddress String?
+  enabled        Boolean   @default(false)
+  deltaLink      String?
+  lastSyncAt     DateTime?
+  lastError      String?
+  updatedAt      DateTime  @updatedAt
 }

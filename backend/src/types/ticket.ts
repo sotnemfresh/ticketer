@@ -44,4 +44,5 @@ export type UpdateTicketBody = {
 export type SubmitTicketUpdateBody = {
   changes?: UpdateTicketBody
   message?: string
+  messageType?: 'OUTBOUND' | 'INTERNAL_NOTE'
 }

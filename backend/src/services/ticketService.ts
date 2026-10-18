@@ -121,6 +121,12 @@ export async function getTicketMessages(rawTicketId: string | string[]) {
   return prisma.ticketMessage.findMany({
     where: { ticketId: result.ticketId },
     orderBy: { createdAt: 'asc' },
+    include: {
+      author: { select: { id: true, name: true, email: true } },
+      attachments: {
+        select: { id: true, filename: true, mimeType: true, size: true, isInline: true, contentId: true, purgedAt: true },
+      },
+    },
   })
 }
 
@@ -154,6 +160,10 @@ export async function submitTicketUpdate(
     throw { status: 400, message: 'Message must be a string' } satisfies ServiceError
   }
 
+  if (body.messageType !== undefined && body.messageType !== 'OUTBOUND' && body.messageType !== 'INTERNAL_NOTE') {
+    throw { status: 400, message: 'Invalid message type' } satisfies ServiceError
+  }
+
   const messageBody = body.message?.trim()
   const { subject, status, priority, assigneeId, requesterId } = changes
   const ticketData: Record<string, unknown> = {}
@@ -171,6 +181,7 @@ export async function submitTicketUpdate(
       throw { status: 400, message: 'Invalid status value' } satisfies ServiceError
     }
     ticketData.status = mappedStatus
+    ticketData.closedAt = mappedStatus === 'CLOSED' ? new Date() : null
   }
 
   if (priority !== undefined) {
@@ -233,7 +244,8 @@ export async function submitTicketUpdate(
         ? await transaction.ticketMessage.create({
             data: {
               ticketId: result.ticketId,
-              body: messageBody,
+              bodyText: messageBody,
+              type: body.messageType ?? 'INTERNAL_NOTE',
               authorId,
             },
           })
