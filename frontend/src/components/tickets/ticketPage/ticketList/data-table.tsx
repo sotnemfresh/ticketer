@@ -20,6 +20,7 @@ interface DataTableProps<TData extends RowData> {
     columns: ColumnDef<DataTableFeatures, TData>[]
     data: TData[]
     onRowClick?: (row: TData) => void
+    initialSorting?: SortingState
 }
 
 // Cells in these columns hold interactive controls and must not trigger row navigation.
@@ -29,8 +30,9 @@ export function DataTable<TData extends RowData>({
     columns,
     data,
     onRowClick,
+    initialSorting,
 }: DataTableProps<TData>) {
-    const [sorting, setSorting] = React.useState<SortingState>([])
+    const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? [])
     const [rowSelection, setRowSelection] = React.useState({})
     const table = useTable({
         features,
