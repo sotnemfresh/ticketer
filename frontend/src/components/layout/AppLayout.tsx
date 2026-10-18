@@ -15,6 +15,7 @@ export default function AppLayout() {
     const navigate = useNavigate()
     const location = useLocation()
     const queryClient = useQueryClient()
+    const isLoginPage = location.pathname === "/login"
 
     useEffect(() => {
         const handleUnauthorized = () => {
@@ -37,23 +38,29 @@ export default function AppLayout() {
     return (
         <TooltipProvider>
             <Toaster>
-              <div className="flex h-svh flex-col overflow-hidden bg-background">
-                <Navbar />
+                {isLoginPage ? (
+                    <main className="min-h-svh bg-background">
+                        <Outlet />
+                    </main>
+                ) : (
+                    <div className="flex h-svh flex-col overflow-hidden bg-background">
+                        <Navbar />
 
-                <div className="flex min-h-0 flex-1">
-                    <IconRail />
-                    <SidebarProvider className="relative min-h-0 flex-1">
-                        {detailMatch ? (
-                            <TicketDraftProvider key={detailMatch.params.ticketId}>
-                                {sidebarAndPage}
-                            </TicketDraftProvider>
-                        ) : (
-                            sidebarAndPage
-                        )}
-                    </SidebarProvider>
-                </div>
-                            </div>
-                        </Toaster>
+                        <div className="flex min-h-0 flex-1">
+                            <IconRail />
+                            <SidebarProvider className="relative min-h-0 flex-1">
+                                {detailMatch ? (
+                                    <TicketDraftProvider key={detailMatch.params.ticketId}>
+                                        {sidebarAndPage}
+                                    </TicketDraftProvider>
+                                ) : (
+                                    sidebarAndPage
+                                )}
+                            </SidebarProvider>
+                        </div>
+                    </div>
+                )}
+            </Toaster>
         </TooltipProvider>
     )
 }
