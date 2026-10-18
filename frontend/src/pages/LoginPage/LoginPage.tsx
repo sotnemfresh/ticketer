@@ -10,18 +10,12 @@ export default function LoginPage() {
   return <Navigate to="/tickets" replace />;
   }
   const handleLogin = async (data: LoginFormInputs) => {
-    try {
-      await loginUser(data.email, data.password);
-      console.log('Login successful');
-      navigate("/tickets");
-    } catch (error) {
-      console.error('Login failed', error);
-    }
+    await loginUser(data.email, data.password);
+    navigate("/tickets");
   };
 
   return (
-    <div>
-      <h1>Login</h1>
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <LoginForm onSubmit={handleLogin} />
     </div>
   );
