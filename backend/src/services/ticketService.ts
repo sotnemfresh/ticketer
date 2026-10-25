@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js'
 import { parseTicketId } from '../helpers/ticketId.js'
 import { parseUserId } from '../helpers/userId.js'
 import { statusMap, priorityMap, type CreateTicketBody, type SubmitTicketUpdateBody } from '../types/ticket.js'
+import { sanitizeEmailHtml } from './mail/sanitizeHtml.js'
 
 export type ServiceError = {
   status: number
@@ -229,8 +230,9 @@ export async function submitTicketUpdate(
     ticketData.updatedAt = new Date()
   }
 
+  let updated
   try {
-    return await prisma.$transaction(async (transaction) => {
+    updated = await prisma.$transaction(async (transaction) => {
       const ticket = await transaction.ticket.update({
         where: { id: result.ticketId },
         data: ticketData,
@@ -242,15 +244,68 @@ export async function submitTicketUpdate(
 
       const message = messageBody
         ? await transaction.ticketMessage.create({
-            data: {
-              ticketId: result.ticketId,
-              bodyText: messageBody,
-              type: body.messageType ?? 'INTERNAL_NOTE',
-              authorId,
-            },
-          })
+          data: {
+            ticketId: result.ticketId,
+            bodyText: messageBody,
+            type: body.messageType ?? 'INTERNAL_NOTE',
+            authorId,
+          },
+        })
         : null
+      if (message?.type === 'OUTBOUND') {
+        const settings = await transaction.mailboxSettings.findUnique({
+          where: { id: 1 },
+        })
+        if (!settings?.enabled || !settings.mailboxAddress?.trim()) {
+          throw new Error('Support mailbox is not configured or enabled')
+        }
 
+        const followers = await transaction.ticketFollower.findMany({
+          where: { ticketId: ticket.id, type: 'CC' },
+          select: { email: true },
+        })
+        const anchor = await transaction.ticketMessage.findFirst({
+          where: {
+            ticketId: ticket.id,
+            type: 'INBOUND',
+            graphMessageId: { not: null },
+          },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: {
+            graphMessageId: true,
+            messageIdHeader: true,
+            references: true,
+          },
+        })
+
+        const normalize = (email: string) => email.trim().toLowerCase()
+        const senderMailbox = normalize(settings.mailboxAddress)
+        const requesterEmail = normalize(ticket.requester.email)
+        const ccEmails = [...new Set(followers.map(({ email }) => normalize(email)))]
+          .filter((email) => email && email !== requesterEmail && email !== senderMailbox)
+
+        const escapedText = message.bodyText
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+        const bodyHtml = sanitizeEmailHtml(
+          `<div>${escapedText.replace(/\r?\n/g, '<br>')}</div>`,
+        )
+
+        await transaction.outboundDelivery.create({
+          data: {
+            messageId: message.id,
+            senderMailbox,
+            toEmails: [requesterEmail],
+            ccEmails,
+            subject: ticket.subject,
+            bodyHtml,
+            replyToGraphMessageId: anchor?.graphMessageId ?? null,
+            inReplyTo: anchor?.messageIdHeader ?? null,
+            references: anchor?.references ?? [],
+          },
+        })
+      }
       return { ticket, message }
     })
   } catch (error) {
@@ -260,4 +315,6 @@ export async function submitTicketUpdate(
       message: 'Something went wrong while submitting the ticket update',
     } satisfies ServiceError
   }
+
+  return updated
 }

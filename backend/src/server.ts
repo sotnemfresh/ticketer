@@ -3,6 +3,7 @@ import session from 'express-session'
 import { ticketRouter } from './routers/ticketRoutes.js'
 import { userRouter } from './routers/userRoutes.js'
 import { authRoutes } from './routers/authRoutes.js'
+import { startMailPoller } from './services/mail/mailPoller.js'
 import cors from 'cors'
 import 'dotenv/config'
 
@@ -33,6 +34,7 @@ app.get('/', (req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`)
+  startMailPoller()
 })
 
 export default app
