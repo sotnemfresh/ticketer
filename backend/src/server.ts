@@ -6,6 +6,7 @@ import { authRoutes } from './routers/authRoutes.js'
 import { startMailPoller } from './services/mail/mailPoller.js'
 import cors from 'cors'
 import 'dotenv/config'
+import { startOutboundMailWorker } from './services/mail/outboundMailWorker.js'
 
 const app = express()
 const port = process.env.PORT || 3000
@@ -35,6 +36,7 @@ app.get('/', (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`)
   startMailPoller()
+  startOutboundMailWorker()
 })
 
 export default app

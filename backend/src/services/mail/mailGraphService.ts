@@ -38,7 +38,9 @@ export async function fetchNewMessages(mailbox: string, deltaLink: string | null
       value: GraphMessage[]
       '@odata.nextLink'?: string
       '@odata.deltaLink'?: string
-    } = await graphJson(url, { headers: { Prefer: 'odata.maxpagesize=50' } })
+    } = await graphJson(url, {
+      headers: { Prefer: 'odata.maxpagesize=50, IdType="ImmutableId"' },
+    })
 
     messages.push(...page.value.filter((m) => !m['@removed']))
     newDeltaLink = page['@odata.deltaLink'] ?? newDeltaLink
@@ -51,7 +53,7 @@ export async function fetchNewMessages(mailbox: string, deltaLink: string | null
 // Delta results don't include In-Reply-To/References, so fetch the headers per message.
 export async function getMessageHeaders(mailbox: string, messageId: string) {
   const msg = await graphJson<Pick<GraphMessage, 'internetMessageHeaders'>>(
-    `${user(mailbox)}/messages/${messageId}?$select=internetMessageHeaders`,
+    `${user(mailbox)}/messages/${encodeURIComponent(messageId)}?$select=internetMessageHeaders`,
   )
   const header = (name: string) =>
     msg.internetMessageHeaders?.find((h) => h.name.toLowerCase() === name)?.value ?? null
@@ -76,7 +78,7 @@ export type GraphAttachmentInfo = {
 // contentId exists only on fileAttachment, so it can't be selected in the list call.
 export async function listAttachments(mailbox: string, messageId: string) {
   const res = await graphJson<{ value: GraphAttachmentInfo[] }>(
-    `${user(mailbox)}/messages/${messageId}/attachments?$select=id,name,contentType,size,isInline`,
+    `${user(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments?$select=id,name,contentType,size,isInline`,
   )
   // Skip item/reference attachments; only real files are stored.
   return res.value.filter((a) => a['@odata.type'] === '#microsoft.graph.fileAttachment')
@@ -84,7 +86,7 @@ export async function listAttachments(mailbox: string, messageId: string) {
 
 export async function getFileAttachment(mailbox: string, messageId: string, attachmentId: string) {
   const attachment = await graphJson<{ contentId: string | null; contentBytes: string }>(
-    `${user(mailbox)}/messages/${messageId}/attachments/${attachmentId}`,
+    `${user(mailbox)}/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`,
   )
   return {
     contentId: attachment.contentId,
@@ -101,8 +103,9 @@ export type GraphDraft = {
 }
 
 export async function createReplyDraft(mailbox: string, messageId: string) {
-  return graphJson<GraphDraft>(`${user(mailbox)}/messages/${messageId}/createReply`, {
+  return graphJson<GraphDraft>(`${user(mailbox)}/messages/${encodeURIComponent(messageId)}/createReply`, {
     method: 'POST',
+    headers: { Prefer: 'IdType="ImmutableId"' },
     body: '{}',
   })
 }
@@ -113,6 +116,7 @@ export async function createNewDraft(
 ) {
   return graphJson<GraphDraft>(`${user(mailbox)}/messages`, {
     method: 'POST',
+    headers: { Prefer: 'IdType="ImmutableId"' },
     body: JSON.stringify({
       subject: draft.subject,
       body: { contentType: 'HTML', content: draft.html },
@@ -127,8 +131,9 @@ export async function updateDraft(
   draftId: string,
   update: { html: string; to: string[]; cc: string[] },
 ) {
-  await graphRequest(`${user(mailbox)}/messages/${draftId}`, {
+  await graphRequest(`${user(mailbox)}/messages/${encodeURIComponent(draftId)}`, {
     method: 'PATCH',
+    headers: { Prefer: 'IdType="ImmutableId"' },
     body: JSON.stringify({
       body: { contentType: 'HTML', content: update.html },
       toRecipients: update.to.map(toRecipient),
@@ -137,13 +142,31 @@ export async function updateDraft(
   })
 }
 
-export async function getDraftMessageId(mailbox: string, draftId: string) {
-  const draft = await graphJson<{ internetMessageId: string | null }>(
-    `${user(mailbox)}/messages/${draftId}?$select=internetMessageId`,
+export async function getDeliveryMessage(mailbox: string, messageId: string) {
+  return graphJson<{
+    id: string
+    isDraft: boolean
+    internetMessageId: string | null
+    parentFolderId: string
+    sentDateTime: string | null
+  }>(
+    `${user(mailbox)}/messages/${encodeURIComponent(messageId)}` +
+    '?$select=id,isDraft,internetMessageId,parentFolderId,sentDateTime',
+    { headers: { Prefer: 'IdType="ImmutableId"' } },
   )
-  return draft.internetMessageId
+}
+
+export async function getSentItemsFolderId(mailbox: string) {
+  const folder = await graphJson<{ id: string }>(
+    `${user(mailbox)}/mailFolders/sentitems?$select=id`,
+    { headers: { Prefer: 'IdType="ImmutableId"' } },
+  )
+  return folder.id
 }
 
 export async function sendDraft(mailbox: string, draftId: string) {
-  await graphRequest(`${user(mailbox)}/messages/${draftId}/send`, { method: 'POST' })
+  await graphRequest(`${user(mailbox)}/messages/${encodeURIComponent(draftId)}/send`, {
+    method: 'POST',
+    headers: { Prefer: 'IdType="ImmutableId"' },
+  })
 }
