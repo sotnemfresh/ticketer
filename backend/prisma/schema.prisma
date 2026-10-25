@@ -51,8 +51,13 @@ model Ticket {
   requester User  @relation("TicketRequester", fields: [requesterId], references: [id])
   assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
 
+  followUpOfId Int?
+  followUpOf   Ticket? @relation("TicketFollowUp", fields: [followUpOfId], references: [id])
+  followUps    Ticket[] @relation("TicketFollowUp")
+
   @@index([conversationId])
   @@index([status, closedAt])
+  @@index([followUpOfId])
 }
 
 model TicketMessage {
@@ -107,8 +112,8 @@ model OutboundDelivery {
   bodyHtml      String
 
   replyToGraphMessageId String?
-  inReplyTo            String?
-  references           String[] @default([])
+  inReplyTo             String?
+  references            String[] @default([])
 
   graphDraftId      String?
   internetMessageId String?
@@ -117,6 +122,11 @@ model OutboundDelivery {
   nextAttemptAt DateTime  @default(now())
   lastAttemptAt DateTime?
   lastError     String?
+
+  nextReconcileAt    DateTime?
+  reconcileCount     Int       @default(0)
+  needsInvestigation Boolean   @default(false)
+  metadataVerifiedAt DateTime?
 
   leaseToken     String?
   leaseExpiresAt DateTime?
@@ -131,6 +141,8 @@ model OutboundDelivery {
 
   @@index([status, nextAttemptAt])
   @@index([status, leaseExpiresAt])
+  @@index([status, nextReconcileAt])
+  
 }
 
 model Attachment {
@@ -192,7 +204,7 @@ enum FollowerType {
 }
 
 model TicketFollower {
-  id       Int    @id @default(autoincrement())
+  id       Int          @id @default(autoincrement())
   ticketId Int
   userId   Int?
   email    String
