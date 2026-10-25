@@ -124,6 +124,18 @@ export async function getTicketMessages(rawTicketId: string | string[]) {
     orderBy: { createdAt: 'asc' },
     include: {
       author: { select: { id: true, name: true, email: true } },
+      outboundDelivery: {
+        select: {
+          id: true,
+          status: true,
+          attemptCount: true,
+          needsInvestigation: true,
+          lastError: true,
+          nextReconcileAt: true,
+          acceptedAt: true,
+          metadataVerifiedAt: true,
+        },
+      },
       attachments: {
         select: { id: true, filename: true, mimeType: true, size: true, isInline: true, contentId: true, purgedAt: true },
       },

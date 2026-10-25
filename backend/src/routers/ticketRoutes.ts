@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { createTicket, getAllTickets, getTicketById, getTicketMessages, submitTicketUpdate } from '../services/ticketService.js'
 import type { CreateTicketBody, SubmitTicketUpdateBody } from '../types/ticket.js'
 import { requireAuth } from '../middleware/requireAuth.js'
+import { requestDeliveryRetry } from '../services/mail/outboundMailService.js'
 
 export const ticketRouter = Router()
 ticketRouter.use(requireAuth)
@@ -58,6 +59,24 @@ ticketRouter.get('/:ticketId/messages', async (req, res) => {
     const err = error as { status?: number; message?: string }
     return res.status(err.status ?? 500).json({
       message: err.message ?? 'Something went wrong while fetching ticket messages',
+    })
+  }
+})
+
+ticketRouter.post('/:ticketId/messages/:messageId/retry', async (req: Request, res: Response) => {
+  try {
+    const delivery = await requestDeliveryRetry(
+      req.params.ticketId,
+      req.params.messageId,
+      req.session.userId!,
+      req.body,
+    )
+    return res.status(202).json({ delivery })
+  } catch (error) {
+    const err = error as { status?: number; message?: string }
+    if (!err.status) console.error('Failed to queue outbound retry:', error)
+    return res.status(err.status ?? 500).json({
+      message: err.status ? err.message : 'Something went wrong while queuing the email retry',
     })
   }
 })

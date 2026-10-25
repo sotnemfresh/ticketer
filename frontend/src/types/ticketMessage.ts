@@ -1,3 +1,13 @@
+export interface TicketMessageDelivery {
+  id: number
+  status: 'PENDING' | 'PREPARING' | 'READY' | 'SENDING' | 'ACCEPTED' | 'UNKNOWN' | 'FAILED'
+  needsInvestigation: boolean
+  lastError: string | null
+  nextReconcileAt: string | null
+  acceptedAt: string | null
+  metadataVerifiedAt: string | null
+}
+
 export interface TicketMessage {
   id: number
   ticketId: number
@@ -8,6 +18,7 @@ export interface TicketMessage {
   authorId?: number | null
   authorName?: string | null
   authorEmail?: string | null
+  outboundDelivery?: TicketMessageDelivery | null
   attachments?: {
     id: number
     filename: string

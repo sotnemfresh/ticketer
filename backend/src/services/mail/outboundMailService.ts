@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { prisma } from '../../lib/prisma.js'
+import { GraphHttpError } from './graphClient.js'
 import {
   createNewDraft,
   createReplyDraft,
@@ -19,9 +20,134 @@ function errorMessage(error: unknown) {
   return (error instanceof Error ? error.message : String(error)).slice(0, 1000)
 }
 
+function isDefiniteSendRejection(error: unknown) {
+  if (!(error instanceof GraphHttpError)) return false
+  if ([401, 403, 405, 413, 415, 422, 429].includes(error.status)) return true
+  return error.status === 400 && [
+    'ErrorInvalidRecipients',
+    'ErrorInvalidProperty',
+    'ErrorInvalidPropertySet',
+    'ErrorInvalidArgument',
+    'ErrorRequiredPropertyMissing',
+  ].includes(error.code ?? '')
+}
+
 function nextReconcile(reconcileCount: number) {
   const delay = Math.min(RECONCILE_DELAY_MS * 2 ** Math.min(reconcileCount, 6), 3_600_000)
   return new Date(Date.now() + delay)
+}
+
+export async function requestDeliveryRetry(
+  rawTicketId: string | string[],
+  rawMessageId: string | string[],
+  authorId: number,
+  body: unknown,
+) {
+  const author = await prisma.user.findUnique({
+    where: { id: authorId },
+    select: { role: true },
+  })
+  if (!author || (author.role !== 'AGENT' && author.role !== 'ADMIN')) {
+    throw { status: 403, message: 'Only agents and administrators can retry outbound emails' }
+  }
+
+  const ticketId = typeof rawTicketId === 'string' ? Number(rawTicketId) : NaN
+  const messageId = typeof rawMessageId === 'string' ? Number(rawMessageId) : NaN
+  if (!Number.isSafeInteger(ticketId) || ticketId <= 0 || !Number.isSafeInteger(messageId) || messageId <= 0) {
+    throw { status: 400, message: 'Invalid ticket or message ID' }
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    throw { status: 400, message: 'Invalid retry request' }
+  }
+  const { expectedAttemptCount, confirmDuplicateRisk } = body as {
+    expectedAttemptCount?: unknown
+    confirmDuplicateRisk?: unknown
+  }
+  if (typeof expectedAttemptCount !== 'number' || !Number.isSafeInteger(expectedAttemptCount) || expectedAttemptCount < 0) {
+    throw { status: 400, message: 'A valid expectedAttemptCount is required' }
+  }
+  if (confirmDuplicateRisk !== undefined && typeof confirmDuplicateRisk !== 'boolean') {
+    throw { status: 400, message: 'confirmDuplicateRisk must be a boolean' }
+  }
+
+  return prisma.$transaction(async (transaction) => {
+    await transaction.$queryRaw`SELECT "id" FROM "Ticket" WHERE "id" = ${ticketId} FOR UPDATE`
+    const ticket = await transaction.ticket.findUnique({
+      where: { id: ticketId },
+      select: { status: true },
+    })
+    if (!ticket) throw { status: 404, message: 'Ticket not found' }
+    if (ticket.status === 'CLOSED') throw { status: 409, message: 'Closed tickets cannot send emails' }
+
+    const job = await transaction.outboundDelivery.findFirst({
+      where: { messageId, message: { ticketId, type: 'OUTBOUND' } },
+    })
+    if (!job) throw { status: 404, message: 'Outbound delivery not found for this ticket message' }
+    if (job.status !== 'FAILED' && job.status !== 'UNKNOWN') {
+      throw { status: 409, message: 'Only failed or uncertain deliveries can be retried' }
+    }
+    if (job.attemptCount !== expectedAttemptCount) {
+      throw { status: 409, message: 'The delivery has changed; refresh its status before retrying' }
+    }
+    const now = new Date()
+    if (job.leaseExpiresAt && job.leaseExpiresAt > now) {
+      throw { status: 409, message: 'The delivery is being processed; wait for its status to update' }
+    }
+    if (job.status === 'UNKNOWN') {
+      if (confirmDuplicateRisk !== true) {
+        throw { status: 409, message: 'This email may already have been sent. Set confirmDuplicateRisk to true to authorize a potentially duplicate send.' }
+      }
+      if (!job.graphDraftId) {
+        throw { status: 409, message: 'The uncertain delivery has no saved draft ID and requires investigation' }
+      }
+    }
+
+    const settings = await transaction.mailboxSettings.findUnique({ where: { id: 1 } })
+    if (!settings?.enabled || !settings.mailboxAddress?.trim()) {
+      throw { status: 409, message: 'Support mailbox is not configured or enabled' }
+    }
+
+    const otherDelivery = await transaction.outboundDelivery.findFirst({
+      where: {
+        id: { not: job.id },
+        message: { ticketId, type: 'OUTBOUND' },
+        status: { in: ['PENDING', 'PREPARING', 'READY', 'SENDING', 'UNKNOWN'] },
+      },
+      select: { id: true },
+    })
+    if (otherDelivery) {
+      throw { status: 409, message: 'Another email on this ticket has an unresolved send status' }
+    }
+
+    const queued = await transaction.outboundDelivery.updateMany({
+      where: {
+        id: job.id,
+        status: job.status,
+        attemptCount: expectedAttemptCount,
+        updatedAt: job.updatedAt,
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
+      },
+      data: {
+        status: 'PENDING',
+        nextAttemptAt: now,
+        nextReconcileAt: null,
+        reconcileCount: 0,
+        needsInvestigation: false,
+        metadataVerifiedAt: null,
+        lastError: null,
+        leaseToken: null,
+        leaseExpiresAt: null,
+      },
+    })
+    if (queued.count === 0) {
+      throw { status: 409, message: 'The delivery has changed; refresh its status before retrying' }
+    }
+
+    return transaction.outboundDelivery.findUniqueOrThrow({
+      where: { id: job.id },
+      select: { id: true, messageId: true, status: true, attemptCount: true, needsInvestigation: true },
+    })
+  })
 }
 
 export async function prepareDelivery(deliveryId: number) {
@@ -164,11 +290,12 @@ export async function sendPreparedDelivery(deliveryId: number) {
   try {
     await sendDraft(job.senderMailbox, job.graphDraftId)
   } catch (error) {
+    const rejected = isDefiniteSendRejection(error)
     await prisma.outboundDelivery.updateMany({
       where: owned,
       data: {
-        status: 'UNKNOWN',
-        nextReconcileAt: nextReconcile(0),
+        status: rejected ? 'FAILED' : 'UNKNOWN',
+        nextReconcileAt: rejected ? null : nextReconcile(0),
         reconcileCount: 0,
         needsInvestigation: false,
         lastError: errorMessage(error),
