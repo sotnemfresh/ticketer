@@ -78,8 +78,59 @@ model TicketMessage {
   author      User?        @relation(fields: [authorId], references: [id])
   attachments Attachment[]
 
+  outboundDelivery OutboundDelivery?
+
   @@index([ticketId, createdAt])
   @@index([inReplyTo])
+}
+
+enum OutboundDeliveryStatus {
+  PENDING
+  PREPARING
+  READY
+  SENDING
+  ACCEPTED
+  UNKNOWN
+  FAILED
+}
+
+model OutboundDelivery {
+  id        Int @id @default(autoincrement())
+  messageId Int @unique
+
+  status OutboundDeliveryStatus @default(PENDING)
+
+  senderMailbox String
+  toEmails      String[]
+  ccEmails      String[] @default([])
+  subject       String
+  bodyHtml      String
+
+  replyToGraphMessageId String?
+  inReplyTo            String?
+  references           String[] @default([])
+
+  graphDraftId      String?
+  internetMessageId String?
+
+  attemptCount  Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  lastAttemptAt DateTime?
+  lastError     String?
+
+  leaseToken     String?
+  leaseExpiresAt DateTime?
+
+  sendStartedAt DateTime?
+  acceptedAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  message TicketMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+
+  @@index([status, nextAttemptAt])
+  @@index([status, leaseExpiresAt])
 }
 
 model Attachment {
@@ -92,12 +143,14 @@ model Attachment {
   isInline          Boolean   @default(false)
   storageKey        String?   @unique
   graphAttachmentId String?
+  contentHash       String?
   purgedAt          DateTime?
   createdAt         DateTime  @default(now())
 
   message TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@index([messageId])
+  @@index([contentHash])
 }
 
 enum UserRole {
