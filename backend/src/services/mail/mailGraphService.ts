@@ -146,12 +146,13 @@ export async function getDeliveryMessage(mailbox: string, messageId: string) {
   return graphJson<{
     id: string
     isDraft: boolean
+    subject: string | null
     internetMessageId: string | null
     parentFolderId: string
     sentDateTime: string | null
   }>(
     `${user(mailbox)}/messages/${encodeURIComponent(messageId)}` +
-    '?$select=id,isDraft,internetMessageId,parentFolderId,sentDateTime',
+    '?$select=id,isDraft,internetMessageId,parentFolderId,sentDateTime,subject',
     { headers: { Prefer: 'IdType="ImmutableId"' } },
   )
 }

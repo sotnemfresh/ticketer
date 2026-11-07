@@ -229,6 +229,7 @@ export async function prepareDelivery(deliveryId: number) {
         where: { ...owned, leaseExpiresAt: { gt: new Date() } },
         data: {
           status: 'READY',
+          subject: prepared.subject ?? '',
           internetMessageId: prepared.internetMessageId,
           lastError: null,
           leaseToken: null,
