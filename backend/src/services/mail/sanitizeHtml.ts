@@ -1,7 +1,7 @@
 import sanitizeHtml from 'sanitize-html'
 
 // Bounds sanitizer work on huge or malicious messages; the sanitizer closes any cut-off tags.
-const MAX_HTML_LENGTH = 500_000
+export const MAX_HTML_LENGTH = 500_000
 
 const ALLOWED_TAGS = [
   'p', 'br', 'div', 'span', 'b', 'strong', 'i', 'em', 'u', 's', 'sub', 'sup',

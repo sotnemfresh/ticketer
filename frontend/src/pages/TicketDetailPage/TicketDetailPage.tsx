@@ -4,9 +4,10 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/components/ui/toast"
 import { diffChanges } from "@/helpers/diffChanges"
 import { useSubmitTicketUpdate, useTicketMessages } from "@/services/ticketMessageService"
+import type { SubmitTicketUpdateData } from "@/services/ticketMessageService"
 import { useTicket } from "@/services/ticketService"
-import type { Ticket, TicketPriority, TicketStatus, TicketUpdateChanges } from "@/types/ticket"
-import type { TicketMessage } from "@/types/ticketMessage"
+import type { Ticket, TicketPriority, TicketStatus } from "@/types/ticket"
+import type { TicketMessage, TicketMessageDraft } from "@/types/ticketMessage"
 import { TicketComposer } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketComposer"
 import { useTicketDraft } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
 import { TicketHeader } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketHeader"
@@ -68,11 +69,7 @@ interface TicketDetailContentProps {
 	messages: TicketMessage[]
 	messagesLoading: boolean
 	messagesError: unknown
-	submitUpdate: (data: {
-		ticketId: number
-		changes?: TicketUpdateChanges
-		message?: string
-	}) => Promise<unknown>
+	submitUpdate: (data: SubmitTicketUpdateData) => Promise<unknown>
 	isSubmitting: boolean
 }
 
@@ -107,7 +104,7 @@ function TicketDetailContent({
 		})
 	}, [messagesError, ticket.id])
 
-	async function handleSubmit(body: string, submitStatus: TicketStatus) {
+	async function handleSubmit(message: TicketMessageDraft | undefined, submitStatus: TicketStatus) {
 		const original = {
 			subject: ticket.subject,
 			status,
@@ -119,7 +116,7 @@ function TicketDetailContent({
 		const changes = diffChanges(original, updated)
 
 		const hasTicketChanges = Object.keys(changes).length > 0
-		const hasMessage = body.trim().length > 0
+		const hasMessage = Boolean(message?.bodyText.trim())
 
 		if (!hasTicketChanges && !hasMessage) {
 			const error = new Error("Make a ticket change or write a message before submitting.")
@@ -133,18 +130,26 @@ function TicketDetailContent({
 		const submission = submitUpdate({
 			ticketId: ticket.id,
 			...(hasTicketChanges ? { changes } : {}),
-			...(hasMessage ? { message: body.trim() } : {}),
+			...(hasMessage && message ? {
+				message: message.bodyText.trim(),
+				messageHtml: message.bodyHtml,
+				messageType: message.type,
+			} : {}),
 		})
 		await toast.promise(submission, {
 			loading: {
 				title: "Saving ticket update",
-				description: "Applying changes and sending your message...",
+				description: hasMessage && message?.type === "OUTBOUND"
+					? "Applying changes and queuing your reply..."
+					: "Saving your ticket changes and note...",
 				type: "loading",
 			},
 			success: {
 				title: "Ticket updated",
 				description: hasMessage
-					? "Your message and ticket changes were saved."
+					? message?.type === "OUTBOUND"
+						? "Your public reply was queued and ticket changes were saved."
+						: "Your internal note and ticket changes were saved."
 					: "Your ticket changes were saved.",
 				type: "success",
 			},

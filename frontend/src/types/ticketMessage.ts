@@ -1,3 +1,9 @@
+export interface TicketMessageDraft {
+  bodyText: string
+  bodyHtml?: string
+  type: 'OUTBOUND' | 'INTERNAL_NOTE'
+}
+
 export interface TicketMessageDelivery {
   id: number
   status: 'PENDING' | 'PREPARING' | 'READY' | 'SENDING' | 'ACCEPTED' | 'UNKNOWN' | 'FAILED'

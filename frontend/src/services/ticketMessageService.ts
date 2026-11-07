@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
-import type { TicketMessage } from '../types/ticketMessage'
+import type { TicketMessage, TicketMessageDraft } from '../types/ticketMessage'
 import type { Ticket, TicketUpdateChanges } from '../types/ticket'
 import { apiClient } from './apiClient'
 
@@ -16,6 +16,8 @@ export interface SubmitTicketUpdateData {
   ticketId: number
   changes?: TicketUpdateChanges
   message?: string
+  messageHtml?: string
+  messageType?: TicketMessageDraft['type']
 }
 
 export interface SubmitTicketUpdateResponse {
@@ -72,7 +74,11 @@ async function postTicketUpdate(data: SubmitTicketUpdateData): Promise<SubmitTic
       method: 'POST',
       body: JSON.stringify({
         ...(apiChanges && Object.keys(apiChanges).length > 0 ? { changes: apiChanges } : {}),
-        ...(data.message?.trim() ? { message: data.message.trim() } : {}),
+        ...(data.message?.trim() ? {
+          message: data.message.trim(),
+          ...(data.messageHtml !== undefined ? { messageHtml: data.messageHtml } : {}),
+          ...(data.messageType !== undefined ? { messageType: data.messageType } : {}),
+        } : {}),
       }),
     })
   } catch (error) {

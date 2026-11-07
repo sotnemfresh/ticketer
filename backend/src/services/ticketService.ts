@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma.js'
 import { parseTicketId } from '../helpers/ticketId.js'
 import { parseUserId } from '../helpers/userId.js'
 import { statusMap, priorityMap, type CreateTicketBody, type SubmitTicketUpdateBody } from '../types/ticket.js'
-import { sanitizeEmailHtml } from './mail/sanitizeHtml.js'
+import { MAX_HTML_LENGTH, sanitizeEmailHtml } from './mail/sanitizeHtml.js'
 
 export type ServiceError = {
   status: number
@@ -173,11 +173,30 @@ export async function submitTicketUpdate(
     throw { status: 400, message: 'Message must be a string' } satisfies ServiceError
   }
 
+  if (body.messageHtml !== undefined) {
+    if (typeof body.messageHtml !== 'string') {
+      throw { status: 400, message: 'Message HTML must be a string' } satisfies ServiceError
+    }
+    if (body.messageHtml.length > MAX_HTML_LENGTH) {
+      throw { status: 400, message: `Message HTML must not exceed ${MAX_HTML_LENGTH} characters` } satisfies ServiceError
+    }
+  }
+
   if (body.messageType !== undefined && body.messageType !== 'OUTBOUND' && body.messageType !== 'INTERNAL_NOTE') {
     throw { status: 400, message: 'Invalid message type' } satisfies ServiceError
   }
 
   const messageBody = body.message?.trim()
+  let messageHtml: string | null = null
+  if (messageBody) {
+    const escapedText = messageBody
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+    const fallbackHtml = `<div>${escapedText.replace(/\r?\n/g, '<br>')}</div>`
+    const sanitizedHtml = sanitizeEmailHtml(body.messageHtml?.trim() || fallbackHtml)
+    messageHtml = sanitizedHtml.trim() ? sanitizedHtml : sanitizeEmailHtml(fallbackHtml)
+  }
   const { subject, status, priority, assigneeId, requesterId } = changes
   const ticketData: Record<string, unknown> = {}
 
@@ -259,6 +278,7 @@ export async function submitTicketUpdate(
           data: {
             ticketId: result.ticketId,
             bodyText: messageBody,
+            bodyHtml: messageHtml,
             type: body.messageType ?? 'INTERNAL_NOTE',
             authorId,
           },
@@ -296,14 +316,6 @@ export async function submitTicketUpdate(
         const ccEmails = [...new Set(followers.map(({ email }) => normalize(email)))]
           .filter((email) => email && email !== requesterEmail && email !== senderMailbox)
 
-        const escapedText = message.bodyText
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;')
-        const bodyHtml = sanitizeEmailHtml(
-          `<div>${escapedText.replace(/\r?\n/g, '<br>')}</div>`,
-        )
-
         await transaction.outboundDelivery.create({
           data: {
             messageId: message.id,
@@ -311,7 +323,7 @@ export async function submitTicketUpdate(
             toEmails: [requesterEmail],
             ccEmails,
             subject: ticket.subject,
-            bodyHtml,
+            bodyHtml: message.bodyHtml!,
             replyToGraphMessageId: anchor?.graphMessageId ?? null,
             inReplyTo: anchor?.messageIdHeader ?? null,
             references: anchor?.references ?? [],

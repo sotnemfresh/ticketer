@@ -1,7 +1,11 @@
 import { useState, type SubmitEvent } from "react"
+import { EditorContent } from "@tiptap/react"
+import { useTicketEditor } from "./useTicketEditor"
 import { ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ButtonGroup } from "@/components/ui/button-group"
+import { cn } from "@/lib/utils"
+import { TicketReplyModeSelect, type ReplyMode } from "./TicketReplyModeSelect"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -9,8 +13,9 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Textarea } from "@/components/ui/textarea"
 import type { TicketStatus } from "@/types/ticket"
+import type { TicketMessageDraft } from "@/types/ticketMessage"
+import { TicketEditorToolbar } from "./TicketEditorToolbar"
 
 const ticketStatuses: TicketStatus[] = ["open", "new", "pending", "on-hold", "solved", "closed"]
 
@@ -25,7 +30,7 @@ const statusLabels: Record<TicketStatus, string> = {
 
 interface TicketComposerProps {
 	initialStatus: TicketStatus
-	onSubmit: (body: string, status: TicketStatus) => void | Promise<void>
+	onSubmit: (message: TicketMessageDraft | undefined, status: TicketStatus) => void | Promise<void>
 	isSubmitting?: boolean
 	showSubmitError?: boolean
 }
@@ -36,18 +41,23 @@ export function TicketComposer({
 	isSubmitting = false,
 	showSubmitError = true,
 }: TicketComposerProps) {
-	const [body, setBody] = useState("")
 	const [status, setStatus] = useState(initialStatus)
 	const [error, setError] = useState<string | null>(null)
+	const [messageType, setMessageType] = useState<ReplyMode>("INTERNAL_NOTE")
+	const editor = useTicketEditor(isSubmitting)
 
 	async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
 		event.preventDefault()
-		const message = body.trim()
+		if (!editor || isSubmitting) return
+		const bodyText = editor.getText().trim()
+		const message: TicketMessageDraft | undefined = !editor.isEmpty && bodyText
+			? { bodyText, bodyHtml: editor.getHTML(), type: messageType }
+			: undefined
 		setError(null)
 
 		try {
 			await onSubmit(message, status)
-			setBody("")
+			editor.commands.clearContent()
 		} catch (submitError) {
 			setError(
 				submitError instanceof Error
@@ -59,18 +69,24 @@ export function TicketComposer({
 
 	return (
 		<form className="shrink-0 space-y-3 border-t p-4" onSubmit={handleSubmit}>
-			<Textarea
-				aria-label="Write a ticket message"
-				aria-invalid={showSubmitError && Boolean(error)}
-				className="max-h-48 min-h-24 resize-y"
-				disabled={isSubmitting}
-				onChange={(event) => {
-					setBody(event.target.value)
-					if (error) setError(null)
-				}}
-				placeholder="Write a message..."
-				value={body}
-			/>
+			<div className="flex items-center">
+				<TicketReplyModeSelect
+					value={messageType}
+					onChange={setMessageType}
+					disabled={isSubmitting}
+				/>
+			</div>
+			<div className={cn(
+				"overflow-hidden rounded-md border text-foreground",
+				messageType === "INTERNAL_NOTE"
+					? "border-yellow-200 bg-yellow-100 dark:border-yellow-800 dark:bg-yellow-950"
+					: "border-border bg-background",
+			)}>
+				<div className="max-h-64 overflow-y-auto">
+					<EditorContent editor={editor} />
+				</div>
+				<TicketEditorToolbar editor={editor} disabled={isSubmitting} />
+			</div>
 			<div className="flex items-center justify-between gap-3">
 				{showSubmitError && (
 					<p aria-live="polite" className="min-h-5 text-sm text-destructive">
@@ -78,7 +94,7 @@ export function TicketComposer({
 					</p>
 				)}
 				<ButtonGroup className="ml-auto shrink-0">
-					<Button type="submit" disabled={isSubmitting}>
+					<Button type="submit" disabled={isSubmitting || !editor}>
 						{isSubmitting ? "Submitting..." : `Submit as ${statusLabels[status]}`}
 					</Button>
 					<DropdownMenu>
