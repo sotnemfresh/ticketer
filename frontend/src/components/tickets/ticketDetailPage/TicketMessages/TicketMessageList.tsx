@@ -1,23 +1,14 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Message, MessageAvatar, MessageContent, MessageHeader } from "@/components/ui/message"
-import { Bubble, BubbleContent } from "@/components/ui/bubble"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { TicketMessage } from "@/types/ticketMessage"
+import { TicketMessageItem } from "./TicketMessageItem"
 
 interface TicketMessageListProps {
     messages: TicketMessage[]
     isLoading?: boolean
 }
 
-function getInitials(name: string) {
-    return name
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join("")
-}
+
 
 export function TicketMessageList({
     messages,
@@ -44,37 +35,9 @@ export function TicketMessageList({
                         No messages yet.
                     </li>
                 ) : (
-                    messages.map((message) => {
-                        const authorName = message.authorName?.trim() || "Unknown author"
-
-                        return (
-                            <li key={message.id} className="flex gap-3">
-                                <Message>
-                                    <MessageAvatar>
-                                        <Avatar className="mt-0.5">
-                                            <AvatarFallback>{getInitials(authorName) || "?"}</AvatarFallback>
-                                        </Avatar>
-                                    </MessageAvatar>
-                                    <MessageContent>
-                                        <MessageHeader className="gap-2">
-                                            <h2 className="text-sm font-semibold">{authorName}</h2>
-                                            <time
-                                                className="text-xs text-muted-foreground"
-                                                dateTime={message.createdAt}
-                                            >
-                                                {new Date(message.createdAt).toLocaleString()}
-                                            </time>
-                                        </MessageHeader>
-                                        <Bubble>
-                                            <BubbleContent>
-                                                {message.bodyText}
-                                            </BubbleContent>
-                                        </Bubble>
-                                    </MessageContent>
-                                </Message>
-                            </li>
-                        )
-                    })
+                    messages.map((message) => (
+                        <li key={message.id}><TicketMessageItem message={message} /></li>
+                    ))
                 )}
             </ol>
         </ScrollArea>
