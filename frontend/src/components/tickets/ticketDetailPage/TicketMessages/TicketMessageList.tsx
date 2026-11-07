@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { TicketMessage } from "@/types/ticketMessage"
@@ -14,12 +15,23 @@ export function TicketMessageList({
     messages,
     isLoading = false,
 }: TicketMessageListProps) {
+    const listRef = useRef<HTMLOListElement>(null)
+
+    useEffect(() => {
+        if (isLoading) return
+
+        const viewport = listRef.current?.closest<HTMLElement>(
+            '[data-slot="scroll-area-viewport"]'
+        )
+        if (viewport) viewport.scrollTop = viewport.scrollHeight
+    }, [messages, isLoading])
+
     return (
         <ScrollArea
             aria-label="Ticket messages"
             className="h-full min-h-0 flex-1"
         >
-            <ol aria-live="polite" className="space-y-6 px-4 py-5">
+            <ol ref={listRef} aria-live="polite" className="space-y-6 px-4 py-5">
                 {isLoading ? (
                     Array.from({ length: 3 }, (_, index) => (
                         <li key={index} className="flex gap-3">
