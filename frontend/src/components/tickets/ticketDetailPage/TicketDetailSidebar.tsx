@@ -1,9 +1,35 @@
 import { TicketStatusBadge } from "../TicketStatusBadge"
+import { UserPlus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Field, FieldLabel } from "@/components/ui/field"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/components/ui/combobox"
 import { Separator } from "@/components/ui/separator"
 import type { Ticket, TicketPriority } from "@/types/ticket"
 import type { User } from "@/types/user"
+
+type AssigneeOption = Pick<User, "name" | "email"> & { id: number | null }
+
+const unassignedOption: AssigneeOption = { id: null, name: "Unassigned", email: "" }
+const priorityOptions: { label: string; value: TicketPriority }[] = [
+    { label: "Low", value: "low" },
+    { label: "Medium", value: "medium" },
+    { label: "High", value: "high" },
+    { label: "Urgent", value: "urgent" },
+]
+
+function filterUser(user: Pick<User, "name" | "email">, query: string) {
+    const search = query.trim().toLowerCase()
+    return user.name.toLowerCase().includes(search) || user.email.toLowerCase().includes(search)
+}
+
+function UserOptionLabel({ name, email }: Pick<User, "name" | "email">) {
+    return (
+        <div className="min-w-0 py-0.5">
+            <div className="wrap-break-word text-sm font-medium">{name}</div>
+            {email && <div className="break-all text-xs text-muted-foreground">{email}</div>}
+        </div>
+    )
+}
 
 interface TicketDetailSidebarProps {
     ticket: Ticket
@@ -26,8 +52,12 @@ export default function TicketDetailSidebar({
     onAssigneeChange,
     onPriorityChange,
 }: TicketDetailSidebarProps) {
-    const items = users.map((user) => ({ label: user.name, value: String(user.id) }))
-    const assigneeItems = [{ label: "Unassigned", value: "unassigned" }, ...items]
+    const requester = users.find((user) => user.id === requesterId) ?? null
+    const assigneeOptions: AssigneeOption[] = [
+        unassignedOption,
+        ...users.filter((user) => user.role.toLowerCase() !== "customer"),
+    ]
+    const assignee = assigneeOptions.find((user) => user.id === assigneeId) ?? null
 
     return (
         <Field>
@@ -35,82 +65,88 @@ export default function TicketDetailSidebar({
                 <TicketStatusBadge status={ticket.status} />
                 <span className="text-sm font-medium">Ticket #{ticket.id}</span>
             </div>
-            <FieldLabel>
+            <FieldLabel htmlFor="sidebar-requester">
                 Requester
             </FieldLabel>
-            <Select
-                items={items}
-                value={requesterId == null ? null : String(requesterId)}
-                onValueChange={(value) => {
-                    if (value !== null) onRequesterChange(Number(value))
+            <Combobox<User>
+                items={users}
+                value={requester}
+                onValueChange={(user) => {
+                    if (user !== null) onRequesterChange(user.id)
                 }}
+                itemToStringLabel={(user) => user.name}
+                itemToStringValue={(user) => String(user.id)}
+                isItemEqualToValue={(user, value) => user.id === value.id}
+                filter={filterUser}
             >
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Requester" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        {items.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                            </SelectItem>
-                        ))}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
+                <ComboboxInput id="sidebar-requester" className="w-full" placeholder="Search name or email" />
+                <ComboboxContent>
+                    <ComboboxEmpty>No users found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(user: User) => (
+                            <ComboboxItem key={user.id} value={user}>
+                                <UserOptionLabel name={user.name} email={user.email} />
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                    <div className="border-t p-1">
+                        <Button type="button" variant="ghost" size="sm" className="w-full justify-start" disabled>
+                            <UserPlus />
+                            Add user
+                        </Button>
+                    </div>
+                </ComboboxContent>
+            </Combobox>
+            {requester && <p className="break-all text-xs text-muted-foreground">{requester.email}</p>}
 
-            <FieldLabel>
+            <FieldLabel htmlFor="sidebar-assignee">
                 Assignee
             </FieldLabel>
-            <Select
-                items={assigneeItems}
-                value={assigneeId === null ? "unassigned" : String(assigneeId)}
-                onValueChange={(value) => {
-                    onAssigneeChange(value === null || value === "unassigned" ? null : Number(value))
-                }}
+            <Combobox<AssigneeOption>
+                items={assigneeOptions}
+                value={assignee}
+                onValueChange={(user) => onAssigneeChange(user?.id ?? null)}
+                itemToStringLabel={(user) => user.name}
+                itemToStringValue={(user) => user.id === null ? "unassigned" : String(user.id)}
+                isItemEqualToValue={(user, value) => user.id === value.id}
+                filter={filterUser}
             >
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        {assigneeItems.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                            </SelectItem>
-                        ))}
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
+                <ComboboxInput id="sidebar-assignee" className="w-full" placeholder="Search name or email" showClear />
+                <ComboboxContent>
+                    <ComboboxEmpty>No users found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(user: AssigneeOption) => (
+                            <ComboboxItem key={user.id ?? "unassigned"} value={user}>
+                                <UserOptionLabel name={user.name} email={user.email} />
+                            </ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
             <Separator />
 
-            <FieldLabel>
+            <FieldLabel htmlFor="sidebar-priority">
                 Priority
             </FieldLabel>
-            <Select
-                items={[
-                    { label: "Low", value: "low" },
-                    { label: "Medium", value: "medium" },
-                    { label: "High", value: "high" },
-                    { label: "Urgent", value: "urgent" },
-                ]}
-                value={priority}
-                onValueChange={(value) => {
-                    if (value !== null) onPriorityChange(value as TicketPriority)
+            <Combobox<(typeof priorityOptions)[number]>
+                items={priorityOptions}
+                value={priorityOptions.find((option) => option.value === priority) ?? null}
+                itemToStringLabel={(option) => option.label}
+                itemToStringValue={(option) => option.value}
+                onValueChange={(option) => {
+                    if (option !== null) onPriorityChange(option.value)
                 }}
             >
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectGroup>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                    </SelectGroup>
-                </SelectContent>
-            </Select>
+                <ComboboxInput id="sidebar-priority" className="w-full" placeholder="Search priority" />
+                <ComboboxContent>
+                    <ComboboxEmpty>No priorities found.</ComboboxEmpty>
+                    <ComboboxList>
+                        {(option: (typeof priorityOptions)[number]) => (
+                            <ComboboxItem key={option.value} value={option}>{option.label}</ComboboxItem>
+                        )}
+                    </ComboboxList>
+                </ComboboxContent>
+            </Combobox>
 
         </Field>
     )
