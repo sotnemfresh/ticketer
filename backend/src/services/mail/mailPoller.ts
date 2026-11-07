@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma.js'
 import { processInboundMessage } from './inboundMailService.js'
 import { fetchNewMessages } from './mailGraphService.js'
+import { GraphHttpError } from './graphClient.js'
 
 const SETTINGS_ID = 1
 const INTERVAL_MS = Number(process.env.MAIL_POLL_INTERVAL_MS) || 60_000
@@ -29,11 +30,29 @@ async function pollOnce() {
   if (!settings?.enabled || !settings.mailboxAddress) return
 
   const mailbox = settings.mailboxAddress
-  const isFirstSync = settings.deltaLink === null
+  const isFirstSync = settings.deltaLink === null && settings.lastSyncAt === null
   const cutoff = firstSyncCutoff()
 
   try {
-    const { messages, deltaLink } = await fetchNewMessages(mailbox, settings.deltaLink)
+    const { messages, deltaLink } = await fetchNewMessages(mailbox, settings.deltaLink).catch(
+      async (error: unknown) => {
+        if (
+          settings.deltaLink === null ||
+          !(error instanceof GraphHttpError) ||
+          error.status !== 410 ||
+          error.code !== 'SyncStateInvalid'
+        ) {
+          throw error
+        }
+
+        await prisma.mailboxSettings.update({
+          where: { id: SETTINGS_ID },
+          data: { deltaLink: null },
+        })
+        console.warn('Mail sync state expired; restarting inbox delta sync')
+        return fetchNewMessages(mailbox, null)
+      },
+    )
 
     for (const message of messages) {
       if (isFirstSync && new Date(message.receivedDateTime) < cutoff) continue
