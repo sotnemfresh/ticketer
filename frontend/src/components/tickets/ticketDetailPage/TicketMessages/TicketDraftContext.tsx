@@ -6,6 +6,7 @@ export interface TicketDraft {
 	priority?: TicketPriority
 	requesterId?: number
 	assigneeId?: number | null
+	ccEmails?: string[]
 }
 
 interface TicketDraftContextValue {

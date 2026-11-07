@@ -3,10 +3,11 @@ import { useParams } from "react-router-dom"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/components/ui/toast"
 import { diffChanges } from "@/helpers/diffChanges"
+import { normalizeCc, sameCc } from "@/helpers/normalizeCc"
 import { useSubmitTicketUpdate, useTicketMessages } from "@/services/ticketMessageService"
 import type { SubmitTicketUpdateData } from "@/services/ticketMessageService"
 import { useTicket } from "@/services/ticketService"
-import type { Ticket, TicketPriority, TicketStatus } from "@/types/ticket"
+import type { Ticket, TicketPriority, TicketStatus, TicketUpdateChanges } from "@/types/ticket"
 import type { TicketMessage, TicketMessageDraft } from "@/types/ticketMessage"
 import { TicketComposer } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketComposer"
 import { useTicketDraft } from "../../components/tickets/ticketDetailPage/TicketMessages/TicketDraftContext"
@@ -112,8 +113,13 @@ function TicketDetailContent({
 			requesterId: ticket.requester?.id,
 			assigneeId: ticket.assignee?.id,
 		}
-		const updated = { ...original, ...draft, status: submitStatus }
-		const changes = diffChanges(original, updated)
+		const { ccEmails, ...fieldDraft } = draft
+		const updated = { ...original, ...fieldDraft, status: submitStatus }
+		const changes: TicketUpdateChanges = diffChanges(original, updated)
+		const savedCc = ticket.ccRecipients?.map((recipient) => recipient.email)
+		if (ccEmails !== undefined && (savedCc === undefined || !sameCc(savedCc, ccEmails))) {
+			changes.ccEmails = normalizeCc(ccEmails)
+		}
 
 		const hasTicketChanges = Object.keys(changes).length > 0
 		const hasMessage = Boolean(message?.bodyText.trim())

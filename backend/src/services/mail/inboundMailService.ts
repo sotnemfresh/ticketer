@@ -316,7 +316,7 @@ export async function processInboundMessage(
         if (recipient.email === requesterEmail) continue
         const user = await findOrCreateMailUser(recipient.email, recipient.name, tx)
         await tx.ticketFollower.upsert({
-          where: { ticketId_email: { ticketId, email: recipient.email } },
+          where: { ticketId_email_type: { ticketId, email: recipient.email, type: 'CC' } },
           create: { ticketId, email: recipient.email, userId: user.id, type: 'CC' },
           update: { userId: user.id },
         })

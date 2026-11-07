@@ -1,12 +1,46 @@
 import { prisma } from '../lib/prisma.js'
 import { parseTicketId } from '../helpers/ticketId.js'
 import { parseUserId } from '../helpers/userId.js'
-import { statusMap, priorityMap, type CreateTicketBody, type SubmitTicketUpdateBody } from '../types/ticket.js'
+import { statusMap, priorityMap, type CreateTicketBody, type SubmitTicketUpdateBody, type TicketCcRecipient } from '../types/ticket.js'
 import { MAX_HTML_LENGTH, sanitizeEmailHtml } from './mail/sanitizeHtml.js'
 
 export type ServiceError = {
   status: number
   message: string
+}
+
+const ccRecipientsRelation = {
+  where: { type: 'CC' },
+  select: {
+    id: true,
+    email: true,
+    userId: true,
+    user: { select: { id: true, name: true, email: true } },
+  },
+} as const
+
+function toTicketResponse<T extends { followers: TicketCcRecipient[] }>(ticket: T) {
+  const { followers, ...ticketFields } = ticket
+  return { ...ticketFields, ccRecipients: followers }
+}
+
+function parseCcEmails(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 100) {
+    throw { status: 400, message: 'CC recipients must be an array of at most 100 email addresses' } satisfies ServiceError
+  }
+
+  const emails: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== 'string') {
+      throw { status: 400, message: 'Each CC recipient must be an email address' } satisfies ServiceError
+    }
+    const email = entry.trim().toLowerCase()
+    if (email.length > 254 || /[\x00-\x1f\x7f]/.test(email) || !/^[^\s@<>;,]+@[^\s@<>;,]+\.[^\s@<>;,]+$/.test(email)) {
+      throw { status: 400, message: 'Each CC recipient must be a valid email address' } satisfies ServiceError
+    }
+    emails.push(email)
+  }
+  return [...new Set(emails)]
 }
 
 export async function getAllTickets() {
@@ -28,7 +62,7 @@ export async function getTicketById(rawTicketId: string | string[]) {
     } satisfies ServiceError
   }
 
-  return prisma.ticket.findUnique({
+  const ticket = await prisma.ticket.findUnique({
     where: { id: result.ticketId },
     include: {
       requester: {
@@ -37,8 +71,11 @@ export async function getTicketById(rawTicketId: string | string[]) {
       assignee: {
         select: { id: true, name: true, email: true },
       },
+      followers: ccRecipientsRelation,
     },
   })
+
+  return ticket ? toTicketResponse(ticket) : null
 }
 
 export async function createTicket(body: CreateTicketBody, loggedInUserId: number,) {
@@ -198,6 +235,7 @@ export async function submitTicketUpdate(
     messageHtml = sanitizedHtml.trim() ? sanitizedHtml : sanitizeEmailHtml(fallbackHtml)
   }
   const { subject, status, priority, assigneeId, requesterId } = changes
+  const requestedCcEmails = changes.ccEmails === undefined ? undefined : parseCcEmails(changes.ccEmails)
   const ticketData: Record<string, unknown> = {}
 
   if (subject !== undefined) {
@@ -250,28 +288,72 @@ export async function submitTicketUpdate(
     }
   }
 
-  if (Object.keys(ticketData).length === 0 && !messageBody) {
+  if (Object.keys(ticketData).length === 0 && !messageBody && requestedCcEmails === undefined) {
     throw {
       status: 400,
       message: 'Provide at least one ticket change or a message',
     } satisfies ServiceError
   }
 
-  if (messageBody) {
+  if (messageBody || requestedCcEmails !== undefined) {
     ticketData.updatedAt = new Date()
   }
 
   let updated
   try {
     updated = await prisma.$transaction(async (transaction) => {
-      const ticket = await transaction.ticket.update({
+      if (requestedCcEmails !== undefined) {
+        const author = await transaction.user.findUnique({
+          where: { id: authorId },
+          select: { role: true },
+        })
+        if (!author || (author.role !== 'ADMIN' && author.role !== 'AGENT')) {
+          throw { status: 403, message: 'Only agents and administrators may edit CC recipients' } satisfies ServiceError
+        }
+      }
+
+      let ticket = await transaction.ticket.update({
         where: { id: result.ticketId },
         data: ticketData,
         include: {
           requester: { select: { id: true, name: true, email: true } },
           assignee: { select: { id: true, name: true, email: true } },
+          followers: ccRecipientsRelation,
         },
       })
+
+      const settings = requestedCcEmails !== undefined || body.messageType === 'OUTBOUND'
+        ? await transaction.mailboxSettings.findUnique({ where: { id: 1 } })
+        : null
+      if (requestedCcEmails !== undefined) {
+        const requesterEmail = ticket.requester.email.trim().toLowerCase()
+        const senderMailbox = settings?.mailboxAddress?.trim().toLowerCase()
+        const finalCcEmails = requestedCcEmails.filter((email) => email !== requesterEmail && email !== senderMailbox)
+
+        await transaction.ticketFollower.deleteMany({
+          where: { ticketId: ticket.id, type: 'CC' },
+        })
+        for (const email of finalCcEmails) {
+          const user = await transaction.user.findFirst({
+            where: { email: { equals: email, mode: 'insensitive' } },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+          })
+          await transaction.ticketFollower.upsert({
+            where: { ticketId_email_type: { ticketId: ticket.id, email, type: 'CC' } },
+            create: { ticketId: ticket.id, email, type: 'CC', userId: user?.id ?? null },
+            update: { userId: user?.id ?? null },
+          })
+        }
+        ticket = await transaction.ticket.findUniqueOrThrow({
+          where: { id: ticket.id },
+          include: {
+            requester: { select: { id: true, name: true, email: true } },
+            assignee: { select: { id: true, name: true, email: true } },
+            followers: ccRecipientsRelation,
+          },
+        })
+      }
 
       const message = messageBody
         ? await transaction.ticketMessage.create({
@@ -285,17 +367,10 @@ export async function submitTicketUpdate(
         })
         : null
       if (message?.type === 'OUTBOUND') {
-        const settings = await transaction.mailboxSettings.findUnique({
-          where: { id: 1 },
-        })
         if (!settings?.enabled || !settings.mailboxAddress?.trim()) {
           throw new Error('Support mailbox is not configured or enabled')
         }
 
-        const followers = await transaction.ticketFollower.findMany({
-          where: { ticketId: ticket.id, type: 'CC' },
-          select: { email: true },
-        })
         const anchor = await transaction.ticketMessage.findFirst({
           where: {
             ticketId: ticket.id,
@@ -313,7 +388,7 @@ export async function submitTicketUpdate(
         const normalize = (email: string) => email.trim().toLowerCase()
         const senderMailbox = normalize(settings.mailboxAddress)
         const requesterEmail = normalize(ticket.requester.email)
-        const ccEmails = [...new Set(followers.map(({ email }) => normalize(email)))]
+        const ccEmails = [...new Set(ticket.followers.map(({ email }) => normalize(email)))]
           .filter((email) => email && email !== requesterEmail && email !== senderMailbox)
 
         await transaction.outboundDelivery.create({
@@ -330,9 +405,13 @@ export async function submitTicketUpdate(
           },
         })
       }
-      return { ticket, message }
+      return { ticket: toTicketResponse(ticket), message }
     })
   } catch (error) {
+    if (error !== null && typeof error === 'object' && 'status' in error && 'message' in error &&
+        typeof error.status === 'number' && typeof error.message === 'string') {
+      throw error
+    }
     console.error('Failed to submit ticket update:', error)
     throw {
       status: 500,

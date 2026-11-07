@@ -213,7 +213,7 @@ model TicketFollower {
   ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user   User?  @relation(fields: [userId], references: [id])
 
-  @@unique([ticketId, email])
+  @@unique([ticketId, email, type])
 }
 
 model MailboxSettings {

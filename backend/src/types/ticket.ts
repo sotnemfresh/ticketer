@@ -1,3 +1,14 @@
+export interface TicketCcRecipient {
+    id: number
+    email: string
+    userId: number | null
+    user: {
+        id: number
+        name: string
+        email: string
+    } | null
+}
+
 export interface Ticket {
   id: number;
   subject: string;
@@ -6,6 +17,7 @@ export interface Ticket {
   priority: string;
   createdAt: Date;
   updatedAt?: Date;
+  ccRecipients?: TicketCcRecipient[]
 }
 
 export const statusMap = {
@@ -39,6 +51,7 @@ export type UpdateTicketBody = {
   priority?: keyof typeof priorityMap
   assigneeId?: number | null
   requesterId?: number
+  ccEmails?: string[]
 }
 
 export type SubmitTicketUpdateBody = {
