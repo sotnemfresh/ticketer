@@ -52,7 +52,7 @@ model Ticket {
   assignee  User? @relation("TicketAssignee", fields: [assigneeId], references: [id])
 
   followUpOfId Int?
-  followUpOf   Ticket? @relation("TicketFollowUp", fields: [followUpOfId], references: [id])
+  followUpOf   Ticket?  @relation("TicketFollowUp", fields: [followUpOfId], references: [id])
   followUps    Ticket[] @relation("TicketFollowUp")
 
   @@index([conversationId])
@@ -142,7 +142,6 @@ model OutboundDelivery {
   @@index([status, nextAttemptAt])
   @@index([status, leaseExpiresAt])
   @@index([status, nextReconcileAt])
-  
 }
 
 model Attachment {
@@ -190,6 +189,10 @@ model User {
   passwordHash String?
   role         UserRole @default(AGENT)
   jobTitle     String?
+
+  phone        String?
+  avatarUrl    String?
+  organisation String?
 
   requestedTickets Ticket[] @relation("TicketRequester")
   assignedTickets  Ticket[] @relation("TicketAssignee")
