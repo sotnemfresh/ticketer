@@ -17,7 +17,7 @@ export function TicketMessageItem({ message }: { message: TicketMessage }) {
     const labels = { INBOUND: "Incoming email", OUTBOUND: "Public reply", INTERNAL_NOTE: "Internal note" }
 
     return (
-        <Card className={`w-full min-w-0 rounded-md ${message.type === "INTERNAL_NOTE" ? "bg-muted/50" : ""}`}>
+        <Card className={`w-full min-w-0 rounded-md ${message.type === "INTERNAL_NOTE" ? "bg-yellow-100 ring-yellow-200 dark:bg-yellow-950 dark:ring-yellow-800" : ""}`}>
             <CardHeader className="flex flex-row items-start gap-3">
                 <Avatar className="shrink-0"><AvatarFallback>{getInitials(name) || "?"}</AvatarFallback></Avatar>
                 <div className="min-w-0 flex-1">
