@@ -58,6 +58,7 @@ model Ticket {
   @@index([conversationId])
   @@index([status, closedAt])
   @@index([followUpOfId])
+  @@index([createdAt, id])
 }
 
 model TicketMessage {

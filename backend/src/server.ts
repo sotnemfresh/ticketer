@@ -3,6 +3,7 @@ import session from 'express-session'
 import { ticketRouter } from './routers/ticketRoutes.js'
 import { userRouter } from './routers/userRoutes.js'
 import { authRoutes } from './routers/authRoutes.js'
+import { searchRouter } from './routers/searchRoutes.js'
 import { startMailPoller } from './services/mail/mailPoller.js'
 import cors from 'cors'
 import 'dotenv/config'
@@ -27,6 +28,7 @@ app.use(cors({
 
 app.use('/api/tickets', ticketRouter)
 app.use('/api/users', userRouter)
+app.use('/api/search', searchRouter)
 app.use("/api/auth", authRoutes);
 
 app.get('/', (req: Request, res: Response) => {
