@@ -1,4 +1,6 @@
 import { useState, type SubmitEvent } from "react"
+import type { Ticket } from "@/types/ticket"
+import { TicketReplyRecipients } from "./TicketReplyRecipients"
 import { EditorContent } from "@tiptap/react"
 import { useTicketEditor } from "./useTicketEditor"
 import { ChevronDown } from "lucide-react"
@@ -29,6 +31,7 @@ const statusLabels: Record<TicketStatus, string> = {
 }
 
 interface TicketComposerProps {
+	ticket: Ticket
 	initialStatus: TicketStatus
 	onSubmit: (message: TicketMessageDraft | undefined, status: TicketStatus) => void | Promise<void>
 	isSubmitting?: boolean
@@ -36,6 +39,7 @@ interface TicketComposerProps {
 }
 
 export function TicketComposer({
+	ticket,
 	initialStatus,
 	onSubmit,
 	isSubmitting = false,
@@ -69,13 +73,21 @@ export function TicketComposer({
 
 	return (
 		<form className="shrink-0 space-y-3 border-t p-4" onSubmit={handleSubmit}>
-			<div className="flex items-center">
+			{messageType === "OUTBOUND" ? (
+				<TicketReplyRecipients ticket={ticket} disabled={isSubmitting}>
+					<TicketReplyModeSelect
+						value={messageType}
+						onChange={setMessageType}
+						disabled={isSubmitting}
+					/>
+				</TicketReplyRecipients>
+			) : (
 				<TicketReplyModeSelect
 					value={messageType}
 					onChange={setMessageType}
 					disabled={isSubmitting}
 				/>
-			</div>
+			)}
 			<div className={cn(
 				"overflow-hidden rounded-md border text-foreground",
 				messageType === "INTERNAL_NOTE"

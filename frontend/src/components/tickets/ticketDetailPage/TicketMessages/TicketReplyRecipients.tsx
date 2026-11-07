@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
     Combobox, ComboboxChip, ComboboxChips, ComboboxChipsInput, ComboboxContent,
-    ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList, ComboboxTrigger,
+    ComboboxEmpty, ComboboxItem, ComboboxList,
     ComboboxValue, useComboboxAnchor,
 } from "@/components/ui/combobox"
 import { FieldLabel } from "@/components/ui/field"
@@ -41,10 +41,8 @@ export function TicketReplyRecipients({ ticket, disabled = false, children }: Ti
     const usersQuery = useUsers()
     const users = usersQuery.data ?? []
     const [expanded, setExpanded] = useState(false)
-    const [toSearch, setToSearch] = useState("")
     const [ccSearch, setCcSearch] = useState("")
     const ccAnchor = useComboboxAnchor()
-    const toInputId = `reply-to-${ticket.id}`
     const ccInputId = `reply-cc-${ticket.id}`
 
     const requesterId = draft.requesterId ?? ticket.requester?.id
@@ -92,31 +90,24 @@ export function TicketReplyRecipients({ ticket, disabled = false, children }: Ti
             <CollapsibleContent>
                 <div className="mt-2 space-y-2">
                     <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-center gap-2">
-                        <FieldLabel htmlFor={toInputId}>To:</FieldLabel>
-                        <Combobox<RecipientUser>
-                            items={requesterOptions} value={requester} disabled={disabled}
-                            itemToStringLabel={(user) => user.name} itemToStringValue={(user) => String(user.id)}
-                            isItemEqualToValue={(user, value) => user.id === value.id}
-                            filter={(user, query) => `${user.name} ${user.email}`.toLowerCase().includes(query.trim().toLowerCase())}
-                            inputValue={toSearch}
-                            onInputValueChange={(input, details) => { if (details.reason === "input-change") setToSearch(input) }}
-                            onOpenChange={() => setToSearch("")}
-                            onValueChange={(user) => { if (user) updateDraft({ requesterId: user.id }) }}
+                        <FieldLabel htmlFor="sidebar-requester">To:</FieldLabel>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={disabled}
+                            className="h-auto min-h-8 min-w-0 justify-start whitespace-normal text-left"
+                            aria-label="Change requester"
+                            onClick={() => {
+                                const input = document.getElementById("sidebar-requester")
+                                if (input instanceof HTMLInputElement) {
+                                    input.focus()
+                                    input.click()
+                                }
+                            }}
                         >
-                            <ComboboxTrigger render={
-                                <Button type="button" variant="ghost" disabled={disabled} className="h-auto min-h-8 min-w-0 justify-start whitespace-normal text-left">
-                                    <span className="min-w-0 wrap-break-word" title={requester?.email}>{requester?.name || "Select requester"}</span>
-                                    <Pencil />
-                                </Button>
-                            } />
-                            <ComboboxContent>
-                                <ComboboxInput id={toInputId} placeholder="Search name or email" disabled={disabled} />
-                                <ComboboxEmpty>{usersQuery.isPending ? "Loading users..." : "No users found."}</ComboboxEmpty>
-                                <ComboboxList>
-                                    {(user: RecipientUser) => <ComboboxItem key={user.id} value={user}><RecipientLabel name={user.name} email={user.email} /></ComboboxItem>}
-                                </ComboboxList>
-                            </ComboboxContent>
-                        </Combobox>
+                            <span className="min-w-0 wrap-break-word" title={requester?.email}>{requester?.name || "Select requester"}</span>
+                            <Pencil />
+                        </Button>
                     </div>
                     <div className="grid min-w-0 grid-cols-[2rem_minmax(0,1fr)] items-start gap-2">
                         <FieldLabel htmlFor={ccInputId} className="pt-2">CC:</FieldLabel>

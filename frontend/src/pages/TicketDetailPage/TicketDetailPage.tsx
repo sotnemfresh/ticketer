@@ -183,6 +183,7 @@ function TicketDetailContent({
 			)}
 			<TicketMessageList messages={messages} isLoading={messagesLoading} />
 			<TicketComposer
+				ticket={ticket}
 				key={ticket.id}
 				initialStatus={status}
 				onSubmit={handleSubmit}
