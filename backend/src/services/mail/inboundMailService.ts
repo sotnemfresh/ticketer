@@ -108,23 +108,31 @@ async function findTicketId(params: {
 }
 
 // A ticket needs a requester, so unknown senders become CUSTOMER users without a password.
-async function findOrCreateRequester(email: string, name: string | undefined) {
+async function findOrCreateMailUser(
+  email: string,
+  name: string | undefined,
+  db: Pick<typeof prisma, 'user'> = prisma,
+) {
   // User.email is unique but case-sensitive, so match insensitively to avoid duplicate accounts.
-  const existing = await prisma.user.findFirst({
+  const existing = await db.user.findFirst({
     where: { email: { equals: email, mode: 'insensitive' } },
   })
   if (existing) return existing
 
-  return prisma.user.create({
+  return db.user.create({
     data: { email, name: name?.trim() || email.split('@')[0], role: 'CUSTOMER' },
   })
 }
 
-function collectRecipientEmails(message: GraphMessage, mailbox: string) {
-  const all = [...message.toRecipients, ...message.ccRecipients]
-    .map((r) => r.emailAddress.address.toLowerCase())
-    .filter((email) => email !== mailbox.toLowerCase())
-  return [...new Set(all)]
+function collectRecipients(message: GraphMessage, mailbox: string) {
+  const recipients = new Map<string, { email: string; name: string | undefined }>()
+  for (const { emailAddress } of [...message.toRecipients, ...message.ccRecipients]) {
+    const email = emailAddress.address.trim().toLowerCase()
+    if (!email || email === mailbox.trim().toLowerCase()) continue
+    const name = emailAddress.name?.trim() || recipients.get(email)?.name
+    recipients.set(email, { email, name })
+  }
+  return [...recipients.values()]
 }
 
 function safeFilename(name: string) {
@@ -213,7 +221,7 @@ export async function processInboundMessage(
   const headers = await getMessageHeaders(mailbox, message.id)
   if (isAutoReply(headers)) return { status: 'skipped', reason: 'auto-reply' }
 
-  const requester = await findOrCreateRequester(senderEmail, sender.name)
+  const requester = await findOrCreateMailUser(senderEmail, sender.name)
 
   const isHtml = message.body.contentType === 'html'
 
@@ -304,12 +312,15 @@ export async function processInboundMessage(
       })
       const requesterEmail = owner.requester.email.toLowerCase()
 
-      await tx.ticketFollower.createMany({
-        data: collectRecipientEmails(message, mailbox)
-          .filter((email) => email !== requesterEmail)
-          .map((email) => ({ ticketId, email, type: 'CC' as const })),
-        skipDuplicates: true,
-      })
+      for (const recipient of collectRecipients(message, mailbox)) {
+        if (recipient.email === requesterEmail) continue
+        const user = await findOrCreateMailUser(recipient.email, recipient.name, tx)
+        await tx.ticketFollower.upsert({
+          where: { ticketId_email: { ticketId, email: recipient.email } },
+          create: { ticketId, email: recipient.email, userId: user.id, type: 'CC' },
+          update: { userId: user.id },
+        })
+      }
     }
 
     return { ticketId, messageId: ticketMessage.id }
