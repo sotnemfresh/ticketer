@@ -124,6 +124,7 @@ export function TicketComposer({
 									<DropdownMenuRadioItem
 										key={ticketStatus}
 										value={ticketStatus}
+										closeOnClick
 									>
 										{statusLabels[ticketStatus]}
 									</DropdownMenuRadioItem>

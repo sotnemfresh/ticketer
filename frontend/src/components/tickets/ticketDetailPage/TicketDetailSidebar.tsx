@@ -1,11 +1,11 @@
 import { TicketStatusBadge } from "../TicketStatusBadge"
 import { UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel } from "@/components/ui/field"
-import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "@/components/ui/combobox"
+import { Field } from "@/components/ui/field"
 import { Separator } from "@/components/ui/separator"
 import type { Ticket, TicketPriority } from "@/types/ticket"
 import type { User } from "@/types/user"
+import { SidebarCombobox } from "@/components/tickets/ticketDetailPage/SidebarCombobox"
 
 type AssigneeOption = Pick<User, "name" | "email"> & { id: number | null }
 
@@ -65,88 +65,58 @@ export default function TicketDetailSidebar({
                 <TicketStatusBadge status={ticket.status} />
                 <span className="text-sm font-medium">Ticket #{ticket.id}</span>
             </div>
-            <FieldLabel htmlFor="sidebar-requester">
-                Requester
-            </FieldLabel>
-            <Combobox<User>
+            <SidebarCombobox<User>
+                id="sidebar-requester"
+                label="Requester"
                 items={users}
                 value={requester}
                 onValueChange={(user) => {
                     if (user !== null) onRequesterChange(user.id)
                 }}
-                itemToStringLabel={(user) => user.name}
-                itemToStringValue={(user) => String(user.id)}
-                isItemEqualToValue={(user, value) => user.id === value.id}
+                getLabel={(user) => user.name}
+                getKey={(user) => String(user.id)}
                 filter={filterUser}
-            >
-                <ComboboxInput id="sidebar-requester" className="w-full" placeholder="Search name or email" />
-                <ComboboxContent>
-                    <ComboboxEmpty>No users found.</ComboboxEmpty>
-                    <ComboboxList>
-                        {(user: User) => (
-                            <ComboboxItem key={user.id} value={user}>
-                                <UserOptionLabel name={user.name} email={user.email} />
-                            </ComboboxItem>
-                        )}
-                    </ComboboxList>
-                    <div className="border-t p-1">
-                        <Button type="button" variant="ghost" size="sm" className="w-full justify-start" disabled>
-                            <UserPlus />
-                            Add user
-                        </Button>
-                    </div>
-                </ComboboxContent>
-            </Combobox>
-            {requester && <p className="break-all text-xs text-muted-foreground">{requester.email}</p>}
+                placeholder="Search name or email"
+                emptyMessage="No users found."
+                renderItem={(user) => <UserOptionLabel name={user.name} email={user.email} />}
+                description={requester?.email}
+                footer={
+                    <Button type="button" variant="ghost" size="sm" className="w-full justify-start" disabled>
+                        <UserPlus />
+                        Add user
+                    </Button>
+                }
+            />
 
-            <FieldLabel htmlFor="sidebar-assignee">
-                Assignee
-            </FieldLabel>
-            <Combobox<AssigneeOption>
+            <SidebarCombobox<AssigneeOption>
+                id="sidebar-assignee"
+                label="Assignee"
                 items={assigneeOptions}
                 value={assignee}
                 onValueChange={(user) => onAssigneeChange(user?.id ?? null)}
-                itemToStringLabel={(user) => user.name}
-                itemToStringValue={(user) => user.id === null ? "unassigned" : String(user.id)}
-                isItemEqualToValue={(user, value) => user.id === value.id}
+                getLabel={(user) => user.name}
+                getKey={(user) => user.id === null ? "unassigned" : String(user.id)}
                 filter={filterUser}
-            >
-                <ComboboxInput id="sidebar-assignee" className="w-full" placeholder="Search name or email" showClear />
-                <ComboboxContent>
-                    <ComboboxEmpty>No users found.</ComboboxEmpty>
-                    <ComboboxList>
-                        {(user: AssigneeOption) => (
-                            <ComboboxItem key={user.id ?? "unassigned"} value={user}>
-                                <UserOptionLabel name={user.name} email={user.email} />
-                            </ComboboxItem>
-                        )}
-                    </ComboboxList>
-                </ComboboxContent>
-            </Combobox>
+                placeholder="Search name or email"
+                emptyMessage="No users found."
+                renderItem={(user) => <UserOptionLabel name={user.name} email={user.email} />}
+                showClear
+            />
             <Separator />
 
-            <FieldLabel htmlFor="sidebar-priority">
-                Priority
-            </FieldLabel>
-            <Combobox<(typeof priorityOptions)[number]>
+            <SidebarCombobox<(typeof priorityOptions)[number]>
+                id="sidebar-priority"
+                label="Priority"
                 items={priorityOptions}
                 value={priorityOptions.find((option) => option.value === priority) ?? null}
-                itemToStringLabel={(option) => option.label}
-                itemToStringValue={(option) => option.value}
+                getLabel={(option) => option.label}
+                getKey={(option) => option.value}
                 onValueChange={(option) => {
                     if (option !== null) onPriorityChange(option.value)
                 }}
-            >
-                <ComboboxInput id="sidebar-priority" className="w-full" placeholder="Search priority" />
-                <ComboboxContent>
-                    <ComboboxEmpty>No priorities found.</ComboboxEmpty>
-                    <ComboboxList>
-                        {(option: (typeof priorityOptions)[number]) => (
-                            <ComboboxItem key={option.value} value={option}>{option.label}</ComboboxItem>
-                        )}
-                    </ComboboxList>
-                </ComboboxContent>
-            </Combobox>
+                placeholder="Search priority"
+                emptyMessage="No priorities found."
+            />
 
         </Field>
     )
