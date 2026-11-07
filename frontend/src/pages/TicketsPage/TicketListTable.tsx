@@ -21,14 +21,13 @@ export default function TicketListTable() {
     return (
         <div className="container mx-auto py-10">
             {view.table === "grouped" ? (
-                <GroupedDataTable columns={columns} data={visible} onRowClick={openTicket} />
+                <GroupedDataTable key={view.id} columns={columns} data={visible} onRowClick={openTicket} />
             ) : (
                 <DataTable
                     key={view.id}
                     columns={columns}
                     data={visible}
                     onRowClick={openTicket}
-                    initialSorting={view.id === "unassigned" ? [{ id: "createdAt", desc: true }] : undefined}
                 />
             )}
         </div>

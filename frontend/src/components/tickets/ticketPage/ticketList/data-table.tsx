@@ -32,7 +32,7 @@ export function DataTable<TData extends RowData>({
     onRowClick,
     initialSorting,
 }: DataTableProps<TData>) {
-    const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? [])
+    const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? [{ id: "createdAt", desc: true }])
     const [rowSelection, setRowSelection] = React.useState({})
     const table = useTable({
         features,

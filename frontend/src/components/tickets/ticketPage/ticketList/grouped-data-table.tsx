@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function GroupedDataTable({ columns, data, onRowClick }: Props) {
-    const [sorting, setSorting] = React.useState<SortingState>([])
+    const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }])
     const [rowSelection, setRowSelection] = React.useState({})
     const table = useTable({
         features, data, columns,
