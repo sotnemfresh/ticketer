@@ -20,6 +20,13 @@ import {
 import { type DataTableFeatures } from "./data-table-features"
 import type { Ticket } from '@/types/ticket'
 
+type TicketTableRow = Pick<Ticket, 'id' | 'subject' | 'status' | 'priority'> & {
+  requester?: { name: string } | null
+  assignee?: { name: string } | null
+  createdAt: Date | string
+  updatedAt?: Date | string
+}
+
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
 export type Payment = {
@@ -30,7 +37,7 @@ export type Payment = {
 }
 
 // Use `accessor` for data columns and `display` for columns without one.
-const columnHelper = createColumnHelper<DataTableFeatures, Ticket>()
+const columnHelper = createColumnHelper<DataTableFeatures, TicketTableRow>()
 
 //CheckBox column for selecting rows
 export const columns = columnHelper.columns([
@@ -62,6 +69,7 @@ export const columns = columnHelper.columns([
 //list of columns for the ticket table
   columnHelper.accessor("id", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "ID"
       return (
         <Button
           variant="ghost"
@@ -75,6 +83,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("subject", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Subject"
       return (
         <Button
           variant="ghost"
@@ -92,6 +101,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("priority", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Priority"
       return (
         <Button
           variant="ghost"
@@ -105,6 +115,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("requester", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Requester"
       return (
         <Button
           variant="ghost"
@@ -119,6 +130,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("assignee", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Assignee"
       return (
         <Button
           variant="ghost"
@@ -133,6 +145,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("createdAt", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Created"
       return (
         <Button
           variant="ghost"
@@ -151,6 +164,7 @@ export const columns = columnHelper.columns([
   }),
   columnHelper.accessor("updatedAt", {
     header: ({ column }) => {
+      if (!column.getCanSort()) return "Updated"
       return (
         <Button
           variant="ghost"

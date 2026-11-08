@@ -21,6 +21,12 @@ interface DataTableProps<TData extends RowData> {
     data: TData[]
     onRowClick?: (row: TData) => void
     initialSorting?: SortingState
+    serverPagination?: {
+        canPrevious: boolean
+        canNext: boolean
+        onPrevious: () => void
+        onNext: () => void
+    }
 }
 
 // Cells in these columns hold interactive controls and must not trigger row navigation.
@@ -31,6 +37,7 @@ export function DataTable<TData extends RowData>({
     data,
     onRowClick,
     initialSorting,
+    serverPagination,
 }: DataTableProps<TData>) {
     const [sorting, setSorting] = React.useState<SortingState>(initialSorting ?? [{ id: "createdAt", desc: true }])
     const [rowSelection, setRowSelection] = React.useState({})
@@ -38,6 +45,12 @@ export function DataTable<TData extends RowData>({
         features,
         data,
         columns,
+        initialState: {
+            pagination: { pageIndex: 0, pageSize: 30 },
+        },
+        manualPagination: !!serverPagination,
+        manualSorting: !!serverPagination,
+        enableSorting: !serverPagination,
         state: {
             sorting,
             rowSelection,
@@ -103,16 +116,16 @@ export function DataTable<TData extends RowData>({
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => table.previousPage()}
-                    disabled={!table.getCanPreviousPage()}
+                    onClick={serverPagination?.onPrevious ?? (() => table.previousPage())}
+                    disabled={serverPagination ? !serverPagination.canPrevious : !table.getCanPreviousPage()}
                 >
                     Previous
                 </Button>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => table.nextPage()}
-                    disabled={!table.getCanNextPage()}
+                    onClick={serverPagination?.onNext ?? (() => table.nextPage())}
+                    disabled={serverPagination ? !serverPagination.canNext : !table.getCanNextPage()}
                 >
                     Next
                 </Button>

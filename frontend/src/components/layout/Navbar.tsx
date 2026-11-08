@@ -1,3 +1,4 @@
+import NavbarSearch from './NavbarSearch'
 import { UserMenu } from './UserMenu'
 import { ModeToggle } from './mode-toggle'
 import { TicketCreationContainer } from "@/components/tickets/ticketCreationContainer"
@@ -12,7 +13,11 @@ export default function Navbar() {
         <TicketCreationContainer />
 
       </div>
-      <UserMenu />
+
+      <div className="flex items-center gap-2">
+        <NavbarSearch />
+        <UserMenu />
+      </div>
     </header>
   )
 }

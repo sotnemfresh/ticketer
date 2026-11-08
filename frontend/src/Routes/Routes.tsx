@@ -4,6 +4,7 @@ import App from '../App'
 import TicketListTable from '../pages/TicketsPage/TicketListTable'
 import LoginPage from '../pages/LoginPage/LoginPage'
 import TicketDetail from '../pages/TicketDetailPage/TicketDetailPage'
+import SearchPage from '../pages/SearchPage/SearchPage'
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
           {
             path: "tickets",
             element: <TicketListTable />,
+          },
+          {
+            path: "search",
+            element: <SearchPage />,
           },
           {
             path: "tickets/:ticketId",
