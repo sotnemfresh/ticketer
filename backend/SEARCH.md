@@ -9,12 +9,16 @@ deleted sessions return 401; other roles return 403. Invalid input returns 400.
 
 The query is trimmed, required, and limited to 200 characters. Each distinct
 PostgreSQL `simple` text-search token must match somewhere in the ticket's
-subject, description, or message bodyText. Words may span different messages.
+subject, description, message bodyText, or requester's/assignee's name. Words may
+span different messages, user names, and ticket content.
 Matching is case insensitive, without stemming or prefix/substring matching.
 Russian, Estonian, and English use the same tokenizer. PostgreSQL determines
 punctuation, compound-word and number tokenization; this is not a literal phrase
 search. Punctuation-only queries return no results. A numeric query also matches
-the exact ticket ID. User relationships and bodyHtml are not searched.
+the exact ticket ID. Name searches include tickets where the person is the
+requester or assignee, without requiring their name in the conversation. Content
+matches remain eligible too. Message author/follower names, user email, and
+bodyHtml are not searched. Tickets matching through several sources appear once.
 
 All statuses, including CLOSED and SOLVED, are eligible. Results contain only
 table summaries, ordered by createdAt descending and then ID descending.
@@ -44,6 +48,7 @@ follow-up features; this endpoint does not implement them.
 - services/search/searchInput.ts: input validation and cursor encoding.
 - services/search/ticketSearchService.ts: parameterized SQL matching and bounded summaries.
 - prisma/migrations/20261107180000_ticket_search_indexes/migration.sql: GIN expression indexes and ordering index.
+- prisma/migrations/20261108120000_ticket_search_user_names/migration.sql: user-name GIN index and requester/assignee indexes.
 
 The expression indexes are maintained automatically by PostgreSQL when text
 changes. No search table, background job, or triggers are needed. Prisma cannot
@@ -70,6 +75,8 @@ It inserts fixtures inside a rolled-back transaction. Autoincrement sequences
 still advance, even when the transaction rolls back. Tests cover multilingual
 matching, words across messages, closed tickets, duplicate suppression, live
 message insertion, numeric IDs, and 30-result cursor pagination with tied dates.
+They also cover requester/assignee name matching, names mixed with ticket content,
+whole-word name boundaries, duplicate suppression, and live name changes.
 
 With the backend running, sign in as an agent and open
 `http://localhost:3000/api/search/tickets?q=NASA` in the same browser. Confirm

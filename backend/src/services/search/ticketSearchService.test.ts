@@ -79,6 +79,49 @@ test('database ticket search', { skip: process.env.RUN_SEARCH_DB_TESTS !== '1' }
         assert.equal((await search(`${prefix} '); DROP TABLE "Ticket"; --`)).tickets.length, 0)
       })
 
+      await context.test('requester and assignee names match whole words without duplicate tickets', async () => {
+        const person = await database.user.create({
+          data: { name: `${prefix} Alexandra Example`, email: `${prefix}-person@example.invalid` },
+        })
+        const similarlyNamed = await database.user.create({
+          data: { name: `${prefix} Alexandras Example`, email: `${prefix}-other@example.invalid` },
+        })
+        const requested = await database.ticket.create({
+          data: {
+            subject: 'requesternamefixture', requesterId: person.id, status: 'CLOSED', createdAt: sharedDate,
+          },
+        })
+        const assigned = await database.ticket.create({
+          data: {
+            subject: 'assigneenamefixture printer', requesterId: user.id, assigneeId: person.id, createdAt: sharedDate,
+          },
+        })
+        const both = await database.ticket.create({
+          data: {
+            subject: 'bothnamefixture', requesterId: person.id, assigneeId: person.id, createdAt: sharedDate,
+          },
+        })
+        await database.ticket.create({
+          data: { subject: 'unrelatednamefixture', requesterId: similarlyNamed.id },
+        })
+
+        const result = await search(`${prefix} ALEXANDRA example`)
+        assert.deepEqual(result.tickets.map((ticket) => ticket.id), [both.id, assigned.id, requested.id])
+        assert.equal(result.nextCursor, null)
+        assert.equal((await search(`${prefix} alex`)).tickets.length, 0)
+        assert.deepEqual(
+          (await search(`${prefix} Alexandra printer`)).tickets.map((ticket) => ticket.id),
+          [assigned.id],
+        )
+
+        await database.user.update({ where: { id: person.id }, data: { name: `${prefix} Renamed Example` } })
+        assert.equal((await search(`${prefix} Alexandra`)).tickets.length, 0)
+        assert.deepEqual(
+          (await search(`${prefix} renamed`)).tickets.map((ticket) => ticket.id),
+          [both.id, assigned.id, requested.id],
+        )
+      })
+
       throw rollback
     }, { timeout: 30000 })
   } catch (error) {

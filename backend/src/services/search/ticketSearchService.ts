@@ -26,6 +26,11 @@ export async function searchTickets(input: TicketSearchInput, database: Prisma.T
       UNION
       SELECT terms.word, ticket.id
       FROM terms
+      JOIN "User" AS person ON to_tsvector('simple'::regconfig, person.name) @@ terms.query
+      JOIN "Ticket" AS ticket ON ticket."requesterId" = person.id OR ticket."assigneeId" = person.id
+      UNION
+      SELECT terms.word, ticket.id
+      FROM terms
       JOIN "Ticket" AS ticket ON ticket.id = ${input.ticketId}::integer
     ), matching_tickets AS (
       SELECT "ticketId"
