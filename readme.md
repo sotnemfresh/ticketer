@@ -81,6 +81,34 @@ In particular, email handling is now being integrated using **Microsoft Graph** 
 
 ## Local development
 
+### Environment setup
+
+Copy `backend/.env.example` to `backend/.env` and
+`frontend/.env.example` to `frontend/.env`.
+
+Set a long, random `SESSION_SECRET` in the backend environment.
+Supply your Microsoft Graph credentials to enable email integration.
+
+The default setup uses PostgreSQL on port 5432, the backend on
+port 3000, and frontend API requests through Vite's `/api` proxy.
+
+Never commit your `.env` files.
+
+If you change the backend port, update backend `PORT` and frontend
+`API_PROXY_TARGET` to match.
+
+For direct browser-to-backend requests, set backend `CORS_ORIGIN`
+to the frontend's exact origin.
+
+Restart the relevant services after changing environment variables.
+
+Vite's `/api` proxy is development-only. Production hosting needs
+a reverse proxy for `/api`, or an absolute `VITE_API_URL` supplied
+when building the frontend.
+
+Run each section below in a separate terminal, starting from the
+repository root.
+
 ### 1) Start PostgreSQL (Docker)
 
 ```bash
@@ -93,6 +121,8 @@ docker compose up -d
 ```bash
 cd backend
 npm install
+npx prisma migrate deploy
+npx prisma generate
 npm run dev
 ```
 
