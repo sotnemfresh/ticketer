@@ -53,9 +53,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
           <CardDescription>
             Enter your email below to login to your account
           </CardDescription>
-          <CardAction>
-            <Button type="button" variant="link">Sign Up</Button>
-          </CardAction>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-6">
@@ -80,12 +77,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <a
-                  href="#"
-                  className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                >
-                  Forgot your password?
-                </a>
               </div>
               <Input
                 id="password"
@@ -106,9 +97,6 @@ export default function LoginForm({ onSubmit }: LoginFormProps) {
         <CardFooter className="flex-col gap-2">
           <Button type="submit" disabled={isSubmitting} className="w-full">
             {isSubmitting ? 'Logging in...' : 'Login'}
-          </Button>
-          <Button type="button" variant="outline" className="w-full">
-            Login with Google
           </Button>
         </CardFooter>
       </form>
